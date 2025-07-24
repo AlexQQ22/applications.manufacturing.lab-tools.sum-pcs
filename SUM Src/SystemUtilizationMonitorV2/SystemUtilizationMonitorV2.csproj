@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyTitle>SystemUtilizationMonitor</AssemblyTitle>
+    <AssemblyDescription>System Utilization Monitor Service</AssemblyDescription>
+    <AssemblyProduct>SystemUtilizationMonitor</AssemblyProduct>
+    <AssemblyCompany>Intel</AssemblyCompany>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    
+    <!-- Ensure all runtime dependencies are included -->
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>false</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <PublishTrimmed>false</PublishTrimmed>
+    
+    <!-- Enable detailed dependency output -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.6" />
+    
+    <!-- Explicitly include core runtime packages to ensure they're available -->
+    <PackageReference Include="Microsoft.NETCore.App" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Ensure all runtime files are copied to output -->
+  <PropertyGroup>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RestorePackagesConfig>true</RestorePackagesConfig>
+  </PropertyGroup>
+
+  <!-- Force inclusion of critical runtime assemblies -->
+  <ItemGroup>
+    <Reference Include="System.Runtime" />
+    <Reference Include="System.Console" />
+    <Reference Include="System.Threading" />
+    <Reference Include="System.Collections" />
+  </ItemGroup>
+
+</Project>

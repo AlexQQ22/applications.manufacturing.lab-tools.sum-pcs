@@ -1,0 +1,80 @@
+{
+    "Monitor": {
+        "RecordInterval": "0:05:00", // How often the monitor will capture data.
+        "DirectoriesToWatch": [ //Which directories should be monitored for file changes.
+            {
+                "Path": "C:\\logs\\ISEED",
+                "Filter": "*.*"
+            },
+            {
+                "Path": "D:\\HDMT3\\logs\\HDMTSiteControllerStudioConsoleLogs",
+                "Filter": "*.*"
+            },
+            {
+                "Path": "D:\\HDMT3\\logs\\TEDSDATA",
+                "Filter": "*.*"
+            },
+            {
+                "Path": "D:\\HDMT3\\logs\\commonhdmt",
+                "Filter": "*.*"
+            },
+            {
+                "Path": "D:\\HDMT3\\logs",
+                "Filter": "SiteCDashboard*.*"
+            },
+            {
+                "Path": "D:\\HDMT3\\logs",
+                "Filter": "HdmtTosCtrlLog*.*"
+            },
+            {
+                "Path": "D:\\HDMT3\\logs",
+                "Filter": "HdmtApp*.txt"
+            },
+            {
+                "Path": "D:\\HDMT3\\UsageLogging",
+                "Filter": "*.*"
+            }
+       ]
+    },
+    "Serilog": {
+        "MinimumLevel": {
+            "Default": "Verbose",
+            "Override": {
+                "System": "Information",
+                "Microsoft": "Information",
+                "Microsoft.AspNetCore": "Information",
+                "Microsoft.EntityFrameworkCore": "Information",
+                "Azure": "Information"
+            }
+        },
+        "WriteTo": [
+            {
+                "Name": "File",
+                "Args": {
+                    "path": "%LOCALAPPDATA%/Intel/SystemUtilizationMonitor/SystemUtilization.log", // Where the runtime log is written.
+                    "retainedFileCountLimit": 1,
+                    "fileSizeLimitBytes": "10485760", // How large will the runtime get before rolling over. 10MB
+                    "outputTemplate": "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}|{Level:u3}|{SourceContext}|{Message:lj}{NewLine}{Exception}"
+                }
+            }
+        ],
+        "Enrich": [ "FromLogContext", "WithMachineName" ],
+        "Properties": {
+            "Application": "SystemUtilization"
+        }
+    },
+    "TimeFrameLog": {
+        "MinimumLevel": "Verbose",
+        "WriteTo": [
+            {
+                "Name": "File",
+                "Args": {
+                    "path": "%LOCALAPPDATA%/Intel/SystemUtilizationMonitor/SystemUtilizationTimeFrames.json", // Where the monitor logs are written.
+                    "rollingInterval": "Day", // How often the log files roll over. 
+                    "retainedFileCountLimit": 15, // How many files will be retained.
+                    "outputTemplate": "{Message:l}{NewLine}" // DO NOT CHANGE. This template needs to be maintained to generate valid json.
+                }
+            }
+        ]
+    }
+}
