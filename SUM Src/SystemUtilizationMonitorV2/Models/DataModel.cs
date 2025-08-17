@@ -1,3 +1,4 @@
+// Updated DataModel.cs
 using System;
 using System.Collections.Generic;
 
@@ -65,12 +66,14 @@ namespace SystemUtilizationMonitor.Models
     {
         public bool ShouldReadLogFiles { get; set; }
         public bool Debug { get; set; }
+        public string ProductLogPath { get; set; } // NEW: Add this property
         public ArgsConfig Args { get; set; }
 
         public SumPORConfig()
         {
             Args = new ArgsConfig();
             Debug = false;
+            ProductLogPath = @"\\CR03THHX2989\c$\Users\Public\Documents\PEER Group\PTO TC HDMx\HDMx\Logs\PTO.DiagnosticLog"; // Default value
         }
     }
 
@@ -116,24 +119,17 @@ namespace SystemUtilizationMonitor.Models
     {
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
-        public TimeSpan Duration { get; set; }
-        public TimeSpan ExpectedDuration { get; set; }
-        public string MachineName { get; set; }
-        public int ProcessorCount { get; set; }
-        public long TickCount64 { get; set; }
-        public string UserDomainName { get; set; }
-        public string UserName { get; set; }
-        public Dictionary<string, int> CpuUsage { get; set; }
         public int MouseEvents { get; set; }
         public int KeyboardEvents { get; set; }
-        public Dictionary<string, string> TopProcesses { get; set; }
         public Dictionary<string, uint> FileChanges { get; set; }
+        public string Product { get; set; }
+        public string MachineName { get; set; }
 
         public UtilizationTimeFrame()
         {
-            CpuUsage = new Dictionary<string, int>();
-            TopProcesses = new Dictionary<string, string>();
             FileChanges = new Dictionary<string, uint>();
+            Product = ""; // Initialize with empty string
+            MachineName = "";
         }
     }
 

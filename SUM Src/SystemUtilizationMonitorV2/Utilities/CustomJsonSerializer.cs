@@ -14,29 +14,10 @@ namespace SystemUtilizationMonitor.Utilities
 
             parts.Add("\"StartTime\":\"" + timeFrame.StartTime.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") + "\"");
             parts.Add("\"EndTime\":\"" + timeFrame.EndTime.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") + "\"");
-            parts.Add("\"Duration\":\"" + FormatTimeSpan(timeFrame.Duration) + "\"");
-            parts.Add("\"ExpectedDuration\":\"" + FormatTimeSpan(timeFrame.ExpectedDuration) + "\"");
             parts.Add("\"MachineName\":\"" + EscapeJson(timeFrame.MachineName) + "\"");
-            parts.Add("\"ProcessorCount\":" + timeFrame.ProcessorCount);
-            parts.Add("\"TickCount64\":" + timeFrame.TickCount64);
-            parts.Add("\"UserDomainName\":\"" + EscapeJson(timeFrame.UserDomainName) + "\"");
-            parts.Add("\"UserName\":\"" + EscapeJson(timeFrame.UserName) + "\"");
+            parts.Add("\"Product\":\"" + timeFrame.Product + "\"");
             parts.Add("\"MouseEvents\":" + timeFrame.MouseEvents);
             parts.Add("\"KeyboardEvents\":" + timeFrame.KeyboardEvents);
-
-            var cpuParts = new List<string>();
-            foreach (var kvp in timeFrame.CpuUsage)
-            {
-                cpuParts.Add("\"" + kvp.Key + "\":" + kvp.Value);
-            }
-            parts.Add("\"CpuUsage\":{" + string.Join(",", cpuParts.ToArray()) + "}");
-
-            var processParts = new List<string>();
-            foreach (var kvp in timeFrame.TopProcesses)
-            {
-                processParts.Add("\"" + EscapeJson(kvp.Key) + "\":\"" + EscapeJson(kvp.Value) + "\"");
-            }
-            parts.Add("\"TopProcesses\":{" + string.Join(",", processParts.ToArray()) + "}");
 
             var fileParts = new List<string>();
             foreach (var kvp in timeFrame.FileChanges)
@@ -44,13 +25,7 @@ namespace SystemUtilizationMonitor.Utilities
                 fileParts.Add("\"" + EscapeJson(kvp.Key) + "\":" + kvp.Value);
             }
             parts.Add("\"FileChanges\":{" + string.Join(",", fileParts.ToArray()) + "}");
-
             return "{" + string.Join(",", parts.ToArray()) + "}";
-        }
-
-        private static string FormatTimeSpan(TimeSpan ts)
-        {
-            return ts.ToString(@"hh\:mm\:ss\.fffffff");
         }
 
         private static string EscapeJson(string value)

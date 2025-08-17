@@ -27,10 +27,7 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.6" />
-    
-    <!-- Explicitly include core runtime packages to ensure they're available -->
-    <PackageReference Include="Microsoft.NETCore.App" Version="8.0.0" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
   </ItemGroup>
 
   <!-- Ensure all runtime files are copied to output -->
@@ -38,13 +35,5 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <RestorePackagesConfig>true</RestorePackagesConfig>
   </PropertyGroup>
-
-  <!-- Force inclusion of critical runtime assemblies -->
-  <ItemGroup>
-    <Reference Include="System.Runtime" />
-    <Reference Include="System.Console" />
-    <Reference Include="System.Threading" />
-    <Reference Include="System.Collections" />
-  </ItemGroup>
 
 </Project>

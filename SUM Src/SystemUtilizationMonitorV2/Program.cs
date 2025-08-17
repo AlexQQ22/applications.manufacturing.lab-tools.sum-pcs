@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using SystemUtilizationMonitor.Models;
 using SystemUtilizationMonitor.Services;
@@ -16,7 +17,6 @@ namespace SystemUtilizationMonitor
     // Main Program class with integrated monitoring
     public class Program
     {
-        private static readonly PerformanceCounter cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
         private static readonly List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
         private static readonly Dictionary<string, uint> basicFileChanges = new Dictionary<string, uint>();
         private static readonly object lockObj = new object();
@@ -27,10 +27,6 @@ namespace SystemUtilizationMonitor
         private static DateTime currentDay;
         private static ConfigurationModel appConfig;
 
-        // CPU usage tracking
-        private static readonly Dictionary<string, int> cpuUsageDistribution = new Dictionary<string, int>();
-        private static readonly object cpuLockObj = new object();
-
         // Input monitoring
         private static InputHookManager inputHook;
 
@@ -40,6 +36,9 @@ namespace SystemUtilizationMonitor
         // Track if any file has changed in current interval
         private static volatile bool fileChangeDetected = false;
         private static string firstChangedFile = string.Empty;
+
+        // PsExec execution tracking
+        private static DateTime lastPsExecRun = DateTime.MinValue;
 
         [STAThread]
         public static void Main(string[] args)
@@ -96,11 +95,11 @@ namespace SystemUtilizationMonitor
                 // Initialize input hooks
                 InitializeInputHooks();
 
-                // Start CPU monitoring background task
-                StartCpuMonitoring();
-
                 // Start file cleanup task
                 StartFileCleanupTask();
+
+                // Start PsExec execution task
+                StartPsExecTask();
 
                 // Main monitoring loop
                 MonitoringLoop();
@@ -112,6 +111,127 @@ namespace SystemUtilizationMonitor
             finally
             {
                 Cleanup();
+            }
+        }
+
+        private static void StartPsExecTask()
+        {
+            Task.Factory.StartNew(async delegate ()
+            {
+                // Run immediately on startup
+                await ExecutePsExecCommand();
+                lastPsExecRun = DateTime.Now;
+
+                while (!shouldStop)
+                {
+                    try
+                    {
+                        // Wait for 5 minutes (same interval as monitoring)
+                        await Task.Delay(TimeSpan.FromMinutes(5));
+
+                        if (!shouldStop)
+                        {
+                            await ExecutePsExecCommand();
+                            lastPsExecRun = DateTime.Now;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError("PsExec task error: " + ex.Message);
+                        // Wait a bit before retrying
+                        await Task.Delay(TimeSpan.FromMinutes(1));
+                    }
+                }
+            });
+        }
+
+        private static async Task ExecutePsExecCommand()
+        {
+            try
+            {
+                LogInfo("Starting PsExec command execution...");
+
+                // Path to PsExec64 executable
+                string exePath = @"c:\SUMInstall\PsExec64.exe";
+
+                // Check if PsExec64 exists
+                if (!File.Exists(exePath))
+                {
+                    LogError($"PsExec64.exe not found at: {exePath}");
+                    return;
+                }
+
+                // Arguments to pass to PsExec
+                string arguments = @"-u sysc -p tr@nsf3r cmd /c ""start /wait C:\SUMInstall\VM_Monitoring_Tester.bat""";
+
+                ProcessStartInfo psi = new ProcessStartInfo
+                {
+                    FileName = exePath,
+                    Arguments = arguments,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using (Process proc = new Process())
+                {
+                    proc.StartInfo = psi;
+
+                    // Capture output and error streams
+                    proc.OutputDataReceived += (sender, e) =>
+                    {
+                        if (e.Data != null)
+                        {
+                            LogInfo($"PsExec Output: {e.Data}");
+                        }
+                    };
+
+                    proc.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (e.Data != null)
+                        {
+                            LogError($"PsExec Error: {e.Data}");
+                        }
+                    };
+
+                    proc.Start();
+                    proc.BeginOutputReadLine();
+                    proc.BeginErrorReadLine();
+
+                    // Wait for the process to complete with a timeout
+                    bool completed = proc.WaitForExit(TimeSpan.FromMinutes(2).Milliseconds);
+
+                    if (!completed)
+                    {
+                        LogError("PsExec command timed out after 2 minutes");
+                        try
+                        {
+                            proc.Kill();
+                        }
+                        catch (Exception killEx)
+                        {
+                            LogError($"Failed to kill PsExec process: {killEx.Message}");
+                        }
+                    }
+                    else
+                    {
+                        LogInfo($"PsExec command completed with exit code: {proc.ExitCode}");
+
+                        if (proc.ExitCode == 0)
+                        {
+                            LogInfo("PsExec command executed successfully");
+                        }
+                        else
+                        {
+                            LogError($"PsExec command failed with exit code: {proc.ExitCode}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Exception during PsExec execution: {ex.Message}");
             }
         }
 
@@ -200,6 +320,7 @@ namespace SystemUtilizationMonitor
                 {
                     ShouldReadLogFiles = true,
                     Debug = false,
+                    ProductLogPath = @"", // NEW: Add the default path here
                     Args = new ArgsConfig
                     {
                         RollingInterval = "Day",
@@ -271,7 +392,7 @@ namespace SystemUtilizationMonitor
 
             LogInfo($"Output directory set to: {outputDirectory}");
         }
-        
+
         private static void InitializeForCurrentDay()
         {
             currentDay = DateTime.Now.AddHours(6).Date;
@@ -332,36 +453,6 @@ namespace SystemUtilizationMonitor
             }
         }
 
-        private static void StartCpuMonitoring()
-        {
-            Task.Factory.StartNew(delegate ()
-            {
-                while (!shouldStop)
-                {
-                    try
-                    {
-                        float currentCpu = cpuCounter.NextValue();
-                        int cpuBucket = ((int)Math.Round(currentCpu / 5.0)) * 5;
-                        string bucketKey = cpuBucket.ToString();
-
-                        lock (cpuLockObj)
-                        {
-                            if (!cpuUsageDistribution.ContainsKey(bucketKey))
-                                cpuUsageDistribution[bucketKey] = 0;
-                            cpuUsageDistribution[bucketKey]++;
-                        }
-
-                        Thread.Sleep(1000); // Sample every second
-                    }
-                    catch (Exception ex)
-                    {
-                        LogError("CPU monitoring error: " + ex.Message);
-                        Thread.Sleep(5000); // Wait longer on error
-                    }
-                }
-            });
-        }
-
         private static void StartFileCleanupTask()
         {
             Task.Factory.StartNew(delegate ()
@@ -388,6 +479,7 @@ namespace SystemUtilizationMonitor
             {
                 var files = Directory.GetFiles(outputDirectory, "SystemUtilizationTimeFrames*.json")
                     .Select(f => new FileInfo(f))
+                    .Where(f => !f.Name.Equals("SystemUtilizationTimeFrames.json", StringComparison.OrdinalIgnoreCase)) // Exclude the specific file
                     .OrderByDescending(f => f.CreationTime)
                     .ToList();
 
@@ -442,36 +534,28 @@ namespace SystemUtilizationMonitor
                 if (shouldStop) break;
 
                 var endTime = DateTime.Now.AddHours(6);
-                var actualDuration = endTime - startTime;
 
                 // Collect utilization data
-                var timeFrame = CollectUtilizationData(startTime, endTime, actualDuration);
+                var timeFrame = CollectUtilizationData(startTime, endTime);
 
                 // Write to file
                 LogInfo($"Saved JSON to: {currentOutputFile}");
                 WriteToFile(currentOutputFile, timeFrame);
 
-                var avgCpu = GetAverageCpuUsage(timeFrame.CpuUsage);
-                var topProcess = timeFrame.TopProcesses.Count > 0 ? timeFrame.TopProcesses.First().Key : "None";
-
-                LogInfo($"[{endTime:HH:mm:ss}] Data collected - CPU: {avgCpu:F1}%, Top Process: {topProcess}, " +
+                LogInfo($"[{endTime:HH:mm:ss}] Data collected " +
                        $"Mouse: {timeFrame.MouseEvents}, Keyboard: {timeFrame.KeyboardEvents}, " +
-                       $"File Changes: {timeFrame.FileChanges.Count}");
+                       $"File Changes: {timeFrame.FileChanges.Count}, Product: {timeFrame.Product}, " +
+                       $"Last PsExec: {(lastPsExecRun == DateTime.MinValue ? "Never" : lastPsExecRun.ToString("HH:mm:ss"))}");
             }
         }
 
-        private static UtilizationTimeFrame CollectUtilizationData(DateTime startTime, DateTime endTime, TimeSpan actualDuration)
+        private static UtilizationTimeFrame CollectUtilizationData(DateTime startTime, DateTime endTime)
         {
             var timeFrame = new UtilizationTimeFrame();
             timeFrame.StartTime = startTime;
             timeFrame.EndTime = endTime;
-            timeFrame.Duration = actualDuration;
-            timeFrame.ExpectedDuration = config.RecordInterval;
             timeFrame.MachineName = Environment.MachineName;
-            timeFrame.ProcessorCount = Environment.ProcessorCount;
-            timeFrame.TickCount64 = Environment.TickCount;
-            timeFrame.UserDomainName = Environment.UserDomainName;
-            timeFrame.UserName = Environment.UserName;
+            timeFrame.Product = GetProductPartNumber();
 
             // Get input event counts
             if (inputHook != null)
@@ -480,98 +564,15 @@ namespace SystemUtilizationMonitor
                 timeFrame.KeyboardEvents = inputHook.GetKeyboardEventCount();
             }
 
-            // Collect CPU usage data
-            CollectCpuUsage(timeFrame);
-
-            // Collect process data
-            CollectProcessData(timeFrame);
-
             // Collect file changes using both methods
             CollectFileChanges(timeFrame);
 
             return timeFrame;
         }
 
-        private static void CollectCpuUsage(UtilizationTimeFrame timeFrame)
-        {
-            lock (cpuLockObj)
-            {
-                foreach (var kvp in cpuUsageDistribution)
-                {
-                    timeFrame.CpuUsage[kvp.Key] = kvp.Value;
-                }
-            }
-
-            // If no data collected, provide default
-            if (timeFrame.CpuUsage.Count == 0)
-            {
-                timeFrame.CpuUsage["0"] = 300; // Default 5 minutes worth of samples at 0% CPU
-            }
-        }
-
-        private static void CollectProcessData(UtilizationTimeFrame timeFrame)
-        {
-            try
-            {
-                var processes = Process.GetProcesses();
-                var processData = new List<ProcessInfo>();
-
-                foreach (var process in processes)
-                {
-                    try
-                    {
-                        if (process.HasExited)
-                        {
-                            process.Dispose();
-                            continue;
-                        }
-
-                        var cpuTime = process.TotalProcessorTime;
-                        var processName = GetProcessDisplayName(process);
-                        processData.Add(new ProcessInfo { Name = processName, CpuTime = cpuTime });
-                    }
-                    catch
-                    {
-                        // Skip processes that can't be accessed
-                    }
-                    finally
-                    {
-                        try
-                        {
-                            process.Dispose();
-                        }
-                        catch { }
-                    }
-                }
-
-                // Get top 10 processes by CPU time
-                var groupedProcesses = processData
-                    .Where(p => p.CpuTime.TotalMilliseconds > 0)
-                    .GroupBy(p => p.Name)
-                    .Select(g => new ProcessInfo
-                    {
-                        Name = g.Key,
-                        CpuTime = TimeSpan.FromTicks(g.Sum(p => p.CpuTime.Ticks))
-                    })
-                    .OrderByDescending(p => p.CpuTime)
-                    .Take(10)
-                    .ToList();
-
-                foreach (var process in groupedProcesses)
-                {
-                    timeFrame.TopProcesses[process.Name] = FormatTimeSpan(process.CpuTime);
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError("Could not collect process data: " + ex.Message);
-            }
-        }
-
         private class ProcessInfo
         {
             public string Name { get; set; }
-            public TimeSpan CpuTime { get; set; }
         }
 
         private static string GetProcessDisplayName(Process process)
@@ -706,10 +707,6 @@ namespace SystemUtilizationMonitor
                 fileChangeDetected = false;
                 firstChangedFile = string.Empty;
             }
-            lock (cpuLockObj)
-            {
-                cpuUsageDistribution.Clear();
-            }
             if (inputHook != null)
             {
                 inputHook.ResetCounters();
@@ -730,27 +727,6 @@ namespace SystemUtilizationMonitor
                 LogError("Error writing to file: " + ex.Message);
             }
         }
-
-        private static double GetAverageCpuUsage(Dictionary<string, int> cpuUsage)
-        {
-            if (cpuUsage.Count == 0) return 0;
-
-            double totalWeightedUsage = 0;
-            int totalSamples = 0;
-
-            foreach (var kvp in cpuUsage)
-            {
-                int cpuPercent;
-                if (int.TryParse(kvp.Key, out cpuPercent))
-                {
-                    totalWeightedUsage += cpuPercent * kvp.Value;
-                    totalSamples += kvp.Value;
-                }
-            }
-
-            return totalSamples > 0 ? totalWeightedUsage / totalSamples : 0;
-        }
-
         private static void LogInfo(string message)
         {
             // Log to console if debug mode is enabled
@@ -803,14 +779,204 @@ namespace SystemUtilizationMonitor
                 catch { }
             }
 
+            LogInfo("Cleanup completed.");
+        }
+
+        private static string GetProductPartNumber()
+        {
             try
             {
-                if (cpuCounter != null)
-                    cpuCounter.Dispose();
-            }
-            catch { }
+                LogInfo("Starting enhanced product detection logic...");
 
-            LogInfo("Cleanup completed.");
+                // Method 1: Check for HDMX machine - D:\HDMT3\HdmtOutputFiles
+                string hdmxPath = @"D:\HDMT3\HdmtOutputFiles";
+                if (Directory.Exists(hdmxPath))
+                {
+                    LogInfo("HDMX machine detected - checking TesterHwConfig.xml");
+                    string product = GetProductFromHDMX(hdmxPath);
+                    if (!string.IsNullOrEmpty(product))
+                    {
+                        LogInfo($"Successfully retrieved product from HDMX: {product}");
+                        return product;
+                    }
+                    LogInfo("HDMX path exists but no product found, falling back to HST methods");
+                }
+                else
+                {
+                    LogInfo("HDMX path not found, assuming HST machine");
+                }
+
+                // Method 2: HST method 1 - c:\hst\tpcache\o\D7\{folder1}\{folder2}
+                string hstMethod1Product = GetProductFromHSTMethod1();
+                if (!string.IsNullOrEmpty(hstMethod1Product))
+                {
+                    LogInfo($"Successfully retrieved product from HST Method 1: {hstMethod1Product}");
+                    return hstMethod1Product;
+                }
+
+                // Method 3: HST method 2 - D:\HST\TP_ENG_Loops\TP (most recent ZIP)
+                string hstMethod2Product = GetProductFromHSTMethod2();
+                if (!string.IsNullOrEmpty(hstMethod2Product))
+                {
+                    LogInfo($"Successfully retrieved product from HST Method 2: {hstMethod2Product}");
+                    return hstMethod2Product;
+                }
+
+                LogError("All product detection methods failed");
+                return "PRODUCT_NOT_FOUND";
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error in GetProductPartNumber: {ex.Message}");
+                return "ERROR_GETTING_PRODUCT";
+            }
+        }
+
+        /// <summary>
+        /// Method 1: HDMX - Extract product from TesterHwConfig.xml using SerialNumber regex
+        /// </summary>
+        private static string GetProductFromHDMX(string hdmxPath)
+        {
+            try
+            {
+                string configFilePath = Path.Combine(hdmxPath, "TesterHwConfig.xml");
+
+                if (!File.Exists(configFilePath))
+                {
+                    LogInfo($"TesterHwConfig.xml not found at: {configFilePath}");
+                    return "";
+                }
+
+                LogInfo($"Reading TesterHwConfig.xml from: {configFilePath}");
+
+                string xmlContent = File.ReadAllText(configFilePath);
+
+                // Regex to match SerialNumber: X pattern
+                var serialNumberRegex = new System.Text.RegularExpressions.Regex(
+                    @"SerialNumber:\s*([^\s,<>]+)",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
+                );
+
+                var match = serialNumberRegex.Match(xmlContent);
+                if (match.Success)
+                {
+                    string serialNumber = match.Groups[1].Value.Trim();
+                    LogInfo($"Found SerialNumber in HDMX config: {serialNumber}");
+                    return serialNumber;
+                }
+                else
+                {
+                    LogInfo("SerialNumber pattern not found in TesterHwConfig.xml");
+                    return "";
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error reading HDMX config: {ex.Message}");
+                return "";
+            }
+        }
+
+        /// <summary>
+        /// Method 2: HST Method 1 - c:\hst\tpcache\o\D7\{folder1}\{folder2}
+        /// Returns the name of the second folder
+        /// </summary>
+        private static string GetProductFromHSTMethod1()
+        {
+            try
+            {
+                string hstCachePath = @"c:\hst\tpcache\o\D7";
+
+                if (!Directory.Exists(hstCachePath))
+                {
+                    LogInfo($"HST cache path not found: {hstCachePath}");
+                    return "";
+                }
+
+                LogInfo($"Checking HST cache path: {hstCachePath}");
+
+                // Get all directories in D7
+                string[] firstLevelDirs = Directory.GetDirectories(hstCachePath);
+
+                if (firstLevelDirs.Length == 0)
+                {
+                    LogInfo("No directories found in HST cache D7 folder");
+                    return "";
+                }
+
+                // Take the first (and supposedly only) directory
+                string firstDir = firstLevelDirs[0];
+                LogInfo($"Found first level directory: {Path.GetFileName(firstDir)}");
+
+                // Look for second level directories
+                string[] secondLevelDirs = Directory.GetDirectories(firstDir);
+
+                if (secondLevelDirs.Length == 0)
+                {
+                    LogInfo("No second level directories found in HST cache");
+                    return "";
+                }
+
+                // Take the first second-level directory name as the product
+                string secondDir = secondLevelDirs[0];
+                string productName = Path.GetFileName(secondDir);
+
+                LogInfo($"Found second level directory (product): {productName}");
+                return productName;
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error in HST Method 1: {ex.Message}");
+                return "";
+            }
+        }
+
+        /// <summary>
+        /// Method 3: HST Method 2 - D:\HST\TP_ENG_Loops\TP
+        /// Returns the name of the most recently modified ZIP file (without extension)
+        /// </summary>
+        private static string GetProductFromHSTMethod2()
+        {
+            try
+            {
+                string hstLoopsPath = @"D:\HST\TP_ENG_Loops\TP";
+
+                if (!Directory.Exists(hstLoopsPath))
+                {
+                    LogInfo($"HST loops path not found: {hstLoopsPath}");
+                    return "";
+                }
+
+                LogInfo($"Checking HST loops path: {hstLoopsPath}");
+
+                // Get all ZIP files in the directory
+                string[] zipFiles = Directory.GetFiles(hstLoopsPath, "*.zip");
+
+                if (zipFiles.Length == 0)
+                {
+                    LogInfo("No ZIP files found in HST loops directory");
+                    return "";
+                }
+
+                LogInfo($"Found {zipFiles.Length} ZIP files in HST loops directory");
+
+                // Sort by last write time (most recent first)
+                Array.Sort(zipFiles, (x, y) => File.GetLastWriteTime(y).CompareTo(File.GetLastWriteTime(x)));
+
+                // Get the most recent ZIP file
+                string mostRecentZip = zipFiles[0];
+                string productName = Path.GetFileNameWithoutExtension(mostRecentZip);
+
+                LogInfo($"Most recent ZIP file: {Path.GetFileName(mostRecentZip)}");
+                LogInfo($"Product name from ZIP: {productName}");
+
+                return productName;
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error in HST Method 2: {ex.Message}");
+                return "";
+            }
         }
     }
 }

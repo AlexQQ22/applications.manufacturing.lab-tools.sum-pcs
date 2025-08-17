@@ -1,0 +1,6 @@
+*.dll
+/SUM Src/SystemUtilizationMonitorV2/bin
+/bin
+\bin
+./Output
+./publish
