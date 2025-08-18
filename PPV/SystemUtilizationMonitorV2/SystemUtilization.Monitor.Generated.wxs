@@ -1,0 +1,124 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="System Utilization Monitor" 
+           Language="1033" 
+           Version="1.0.0.0" 
+           Manufacturer="Intel Corporation" 
+           UpgradeCode="12345678-1234-1234-1234-123456789012">
+    
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Define the directory structure -->
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Id="IntelFolder" Name="Intel">
+        <Directory Id="INSTALLFOLDER" Name="SystemUtilizationMonitor" />
+      </Directory>
+    </StandardDirectory>
+    
+    <!-- Start Menu folder -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="System Utilization Monitor"/>
+    </StandardDirectory>
+
+    <!-- Define the components to install -->
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="File1">
+        <File Id="File1" 
+              Source="$(var.SourceDir)\poration\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitorV2\bin\Release\net10.0\win-x64\publish\Newtonsoft.Json.dll" />
+      </Component>
+      <Component Id="File2">
+        <File Id="File2" 
+              Source="$(var.SourceDir)\poration\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitorV2\bin\Release\net10.0\win-x64\publish\System.Configuration.ConfigurationManager.dll" />
+      </Component>
+      <Component Id="File3">
+        <File Id="File3" 
+              Source="$(var.SourceDir)\poration\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitorV2\bin\Release\net10.0\win-x64\publish\System.Diagnostics.EventLog.dll" />
+      </Component>
+      <Component Id="File4">
+        <File Id="File4" 
+              Source="$(var.SourceDir)\poration\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitorV2\bin\Release\net10.0\win-x64\publish\System.Diagnostics.EventLog.Messages.dll" />
+      </Component>
+      <Component Id="File5">
+        <File Id="File5" 
+              Source="$(var.SourceDir)\poration\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitorV2\bin\Release\net10.0\win-x64\publish\System.Diagnostics.PerformanceCounter.dll" />
+      </Component>
+      <Component Id="File6">
+        <File Id="File6" 
+              Source="$(var.SourceDir)\poration\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitorV2\bin\Release\net10.0\win-x64\publish\System.Security.Cryptography.ProtectedData.dll" />
+      </Component>
+      <Component Id="File7">
+        <File Id="File7" 
+              Source="$(var.SourceDir)\poration\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitorV2\bin\Release\net10.0\win-x64\publish\SystemUtilizationMonitorV2.deps.json" />
+      </Component>
+      <Component Id="File8">
+        <File Id="File8" 
+              Source="$(var.SourceDir)\poration\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitorV2\bin\Release\net10.0\win-x64\publish\SystemUtilizationMonitorV2.dll" />
+      </Component>
+      <Component Id="File9">
+        <File Id="File9" 
+              Source="$(var.SourceDir)\poration\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitorV2\bin\Release\net10.0\win-x64\publish\SystemUtilizationMonitorV2.exe" />
+      </Component>
+      <Component Id="File10">
+        <File Id="File10" 
+              Source="$(var.SourceDir)\poration\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitorV2\bin\Release\net10.0\win-x64\publish\SystemUtilizationMonitorV2.pdb" />
+      </Component>
+      <Component Id="File11">
+        <File Id="File11" 
+              Source="$(var.SourceDir)\poration\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitorV2\bin\Release\net10.0\win-x64\publish\SystemUtilizationMonitorV2.runtimeconfig.json" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Create Start Menu shortcuts -->
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcut">
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="System Utilization Monitor"
+                  Description="Monitor system utilization and performance"
+                  Target="[#File1]"
+                  WorkingDirectory="INSTALLFOLDER"/>
+        <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
+        <RegistryValue Root="HKCU" 
+                       Key="Software\Intel\SystemUtilizationMonitor" 
+                       Name="installed" 
+                       Type="integer" 
+                       Value="1" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Optional: Create Desktop shortcut -->
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="DesktopShortcut">
+        <Shortcut Id="DesktopShortcut"
+                  Name="System Utilization Monitor"
+                  Description="Monitor system utilization and performance"
+                  Target="[#File1]"
+                  WorkingDirectory="INSTALLFOLDER"/>
+        <RegistryValue Root="HKCU" 
+                       Key="Software\Intel\SystemUtilizationMonitor" 
+                       Name="DesktopShortcut" 
+                       Type="integer" 
+                       Value="1" />
+      </Component>
+    </StandardDirectory>
+
+    <!-- Define features -->
+    <Feature Id="ProductFeature" Title="System Utilization Monitor" Level="1">
+      <ComponentRef Id="File1" />
+      <ComponentRef Id="File2" />
+      <ComponentRef Id="File3" />
+      <ComponentRef Id="File4" />
+      <ComponentRef Id="File5" />
+      <ComponentRef Id="File6" />
+      <ComponentRef Id="File7" />
+      <ComponentRef Id="File8" />
+      <ComponentRef Id="File9" />
+      <ComponentRef Id="File10" />
+      <ComponentRef Id="File11" />
+      <ComponentRef Id="ApplicationShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+  </Package>
+</Wix>

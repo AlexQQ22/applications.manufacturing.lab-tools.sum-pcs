@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="System Utilization Monitor" 
+           Language="1033" 
+           Version="1.0.0.0" 
+           Manufacturer="Intel Corporation" 
+           UpgradeCode="12345678-1234-1234-1234-123456789012">
+    
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Define the directory structure -->
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Id="IntelFolder" Name="Intel">
+        <Directory Id="INSTALLFOLDER" Name="SystemUtilizationMonitor" />
+      </Directory>
+    </StandardDirectory>
+    
+    <!-- Start Menu folder -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="System Utilization Monitor"/>
+    </StandardDirectory>
+
+    <!-- Define the components to install -->
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="SystemUtilizationMonitorExe">
+        <File Id="SystemUtilizationMonitorExe" 
+              Source="$(var.SourceDir)\SystemUtilizationMonitorV2.exe" />
+      </Component>
+      
+      <!-- Add any additional files like config files, DLLs, etc. -->
+      <Component Id="ConfigFiles">
+        <File Id="AppSettingsJson" 
+              Source="$(var.SourceDir)\appsettings.json" />
+      </Component>
+      
+      <!-- Include common .NET runtime files -->
+      <Component Id="RuntimeFiles">
+        <File Id="RuntimeConfig" 
+              Source="$(var.SourceDir)\SystemUtilizationMonitorV2.runtimeconfig.json" />
+        <File Id="DepsJson" 
+              Source="$(var.SourceDir)\SystemUtilizationMonitorV2.deps.json" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Create Start Menu shortcuts -->
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcut">
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="System Utilization Monitor"
+                  Description="Monitor system utilization and performance"
+                  Target="[#SystemUtilizationMonitorExe]"
+                  WorkingDirectory="INSTALLFOLDER"/>
+        <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
+        <RegistryValue Root="HKCU" 
+                       Key="Software\Intel\SystemUtilizationMonitor" 
+                       Name="installed" 
+                       Type="integer" 
+                       Value="1" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Optional: Create Desktop shortcut -->
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="DesktopShortcut">
+        <Shortcut Id="DesktopShortcut"
+                  Name="System Utilization Monitor"
+                  Description="Monitor system utilization and performance"
+                  Target="[#SystemUtilizationMonitorExe]"
+                  WorkingDirectory="INSTALLFOLDER"/>
+        <RegistryValue Root="HKCU" 
+                       Key="Software\Intel\SystemUtilizationMonitor" 
+                       Name="DesktopShortcut" 
+                       Type="integer" 
+                       Value="1" />
+      </Component>
+    </StandardDirectory>
+
+    <!-- Define features -->
+    <Feature Id="ProductFeature" Title="System Utilization Monitor" Level="1">
+      <ComponentRef Id="SystemUtilizationMonitorExe" />
+      <ComponentRef Id="ConfigFiles" />
+      <ComponentRef Id="RuntimeFiles" />
+      <ComponentRef Id="ApplicationShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+  </Package>
+</Wix>
