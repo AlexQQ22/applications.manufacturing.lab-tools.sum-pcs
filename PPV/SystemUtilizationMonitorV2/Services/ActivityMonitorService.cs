@@ -29,7 +29,7 @@ namespace SystemUtilizationMonitor.Services
         public readonly Regex CELL_COLLATERAL_REGEX_HST = new Regex(@"([ABCD]\d{3}):\s*TIU assignment \d+ board name and CMMS id \(SAC, ([A-Z0-9]+)\)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         public readonly Regex COLLATERAL_ID_REGEX = new Regex(@"Updated TIU collateral id to ([A-Z0-9 ]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         public readonly Regex CELL_COLLATERAL_REGEX = new Regex(@"(A\d{2}[0-9X]):\s*Updated TIU collateral id to ([A-Z0-9 ]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        
+
         // Retry configuration
         private const int MAX_RETRY_ATTEMPTS = 5;
         private const int RETRY_DELAY_MS = 500;
@@ -365,38 +365,38 @@ namespace SystemUtilizationMonitor.Services
         private string SearchCurrentDayHours(string logDirectory, DateTime currentTime, ref string searchLog)
         {
             searchLog += "=== Searching Current Day Hours ===\n";
-            
+
             // Search backwards from current hour to 00:00
             for (int hour = currentTime.Hour; hour >= 0; hour--)
             {
                 DateTime searchTime = new DateTime(currentTime.Year, currentTime.Month, currentTime.Day, hour, 0, 0);
-                
+
                 // Search for both .log and .txt files
-                string[] logPatterns = { 
+                string[] logPatterns = {
                     $"{searchTime:yyyy-MM-ddTHH}-*-*.log",
                     $"{searchTime:yyyy-MM-ddTHH}-*-*.txt"
                 };
-                
+
                 searchLog += $"Searching for patterns: {searchTime:yyyy-MM-ddTHH}-*-*.log and {searchTime:yyyy-MM-ddTHH}-*-*.txt\n";
-                
+
                 try
                 {
                     List<string> matchingFiles = new List<string>();
-                    
+
                     foreach (string pattern in logPatterns)
                     {
                         string[] files = Directory.GetFiles(logDirectory, pattern);
                         matchingFiles.AddRange(files);
                     }
-                    
+
                     if (matchingFiles.Count > 0)
                     {
                         searchLog += $"Found {matchingFiles.Count} files for hour {hour:00}:00\n";
-                        
+
                         // Sort files by name (newest first)
                         matchingFiles.Sort(StringComparer.OrdinalIgnoreCase);
                         matchingFiles.Reverse();
-                        
+
                         foreach (string logFile in matchingFiles)
                         {
                             string productCode = SearchLogFileForProductCode(logFile, ref searchLog);
@@ -417,7 +417,7 @@ namespace SystemUtilizationMonitor.Services
                     searchLog += $"Error searching hour {hour:00}:00: {ex.Message}\n";
                 }
             }
-            
+
             searchLog += "=== Current Day Search Complete - No Results ===\n";
             return "";
         }
@@ -428,39 +428,39 @@ namespace SystemUtilizationMonitor.Services
         private string SearchPreviousDays(string logDirectory, DateTime currentTime, ref string searchLog)
         {
             searchLog += "=== Searching Previous Days ===\n";
-            
+
             for (int daysBack = 1; daysBack <= MAX_DAYS_BACK; daysBack++)
             {
                 DateTime searchDate = currentTime.AddDays(-daysBack);
                 searchLog += $"Searching day {daysBack} back: {searchDate:yyyy-MM-dd}\n";
-                
+
                 // Search all hours of the day (23 down to 0)
                 for (int hour = 23; hour >= 0; hour--)
                 {
                     DateTime searchTime = new DateTime(searchDate.Year, searchDate.Month, searchDate.Day, hour, 0, 0);
-                    
+
                     // Search for both .log and .txt files
-                    string[] logPatterns = { 
+                    string[] logPatterns = {
                         $"{searchTime:yyyy-MM-ddTHH}-*-*.log",
                         $"{searchTime:yyyy-MM-ddTHH}-*-*.txt"
                     };
-                    
+
                     try
                     {
                         List<string> matchingFiles = new List<string>();
-                        
+
                         foreach (string pattern in logPatterns)
                         {
                             string[] files = Directory.GetFiles(logDirectory, pattern);
                             matchingFiles.AddRange(files);
                         }
-                        
+
                         if (matchingFiles.Count > 0)
                         {
                             // Sort files by name (newest first)
                             matchingFiles.Sort(StringComparer.OrdinalIgnoreCase);
                             matchingFiles.Reverse();
-                            
+
                             foreach (string logFile in matchingFiles)
                             {
                                 string productCode = SearchLogFileForProductCode(logFile, ref searchLog);
@@ -481,10 +481,10 @@ namespace SystemUtilizationMonitor.Services
                         }
                     }
                 }
-                
+
                 searchLog += $"Completed search for {searchDate:yyyy-MM-dd} - No results\n";
             }
-            
+
             searchLog += "=== Previous Days Search Complete - No Results ===\n";
             return "";
         }
@@ -495,27 +495,27 @@ namespace SystemUtilizationMonitor.Services
         private string SearchZippedFiles(string logDirectory, DateTime currentTime, ref string searchLog)
         {
             searchLog += "=== Searching Zipped Files ===\n";
-            
+
             try
             {
                 // Look for common zip file patterns
                 string[] zipPatterns = { "*.zip", "*.7z", "*.rar", "*.gz" };
-                
+
                 foreach (string pattern in zipPatterns)
                 {
                     string[] zipFiles = Directory.GetFiles(logDirectory, pattern);
-                    
+
                     if (zipFiles.Length > 0)
                     {
                         searchLog += $"Found {zipFiles.Length} {pattern} files\n";
-                        
+
                         // Sort by modification date (newest first)
                         Array.Sort(zipFiles, (x, y) => File.GetLastWriteTime(y).CompareTo(File.GetLastWriteTime(x)));
-                        
+
                         foreach (string zipFile in zipFiles)
                         {
                             searchLog += $"Examining zip file: {Path.GetFileName(zipFile)}\n";
-                            
+
                             string productCode = SearchZipFileForProductCode(zipFile, ref searchLog);
                             if (!string.IsNullOrEmpty(productCode))
                             {
@@ -525,14 +525,14 @@ namespace SystemUtilizationMonitor.Services
                         }
                     }
                 }
-                
+
                 searchLog += "No zip files found or no product codes in zip files\n";
             }
             catch (Exception ex)
             {
                 searchLog += $"Error searching zip files: {ex.Message}\n";
             }
-            
+
             searchLog += "=== Zipped Files Search Complete - No Results ===\n";
             return "";
         }
@@ -554,7 +554,7 @@ namespace SystemUtilizationMonitor.Services
             {
                 searchLog += $"Error reading {Path.GetFileName(logFile)}: {ex.Message}\n";
             }
-            
+
             return "";
         }
 
@@ -565,15 +565,15 @@ namespace SystemUtilizationMonitor.Services
         private string SearchZipFileForProductCode(string zipFile, ref string searchLog)
         {
             string tempDir = null;
-            
+
             try
             {
                 searchLog += $"Processing ZIP file: {Path.GetFileName(zipFile)}\n";
-                
+
                 // Create temporary directory for extraction
                 tempDir = Path.Combine(Path.GetTempPath(), $"HST_LogSearch_{Guid.NewGuid()}");
                 Directory.CreateDirectory(tempDir);
-                
+
                 // Extract zip file
                 if (zipFile.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                 {
@@ -584,28 +584,30 @@ namespace SystemUtilizationMonitor.Services
                     searchLog += $"Unsupported archive format: {Path.GetFileName(zipFile)}\n";
                     return "";
                 }
-                
+
                 // Search all extracted .log and .txt files
                 string[] extractedLogFiles = Directory.GetFiles(tempDir, "*.*", SearchOption.AllDirectories)
-                    .Where(file => file.EndsWith(".log", StringComparison.OrdinalIgnoreCase) || 
+                    .Where(file => file.EndsWith(".log", StringComparison.OrdinalIgnoreCase) ||
                                    file.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
                     .ToArray();
-                
+
                 searchLog += $"Extracted {extractedLogFiles.Length} log/txt files from {Path.GetFileName(zipFile)}\n";
-                
+
                 if (extractedLogFiles.Length == 0)
                 {
                     searchLog += "No .log or .txt files found in ZIP archive\n";
                     return "";
                 }
-                
+
                 // Filter and sort HST log files by date/time (most recent first)
                 var hstLogFiles = extractedLogFiles
-                    .Where(file => {
+                    .Where(file =>
+                    {
                         string fileName = Path.GetFileName(file);
                         return Regex.IsMatch(fileName, @"\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-.*\.(log|txt)", RegexOptions.IgnoreCase);
                     })
-                    .Select(file => new {
+                    .Select(file => new
+                    {
                         FilePath = file,
                         FileName = Path.GetFileName(file),
                         ParsedDateTime = ParseLogFileDateTime(Path.GetFileName(file))
@@ -613,25 +615,25 @@ namespace SystemUtilizationMonitor.Services
                     .Where(x => x.ParsedDateTime.HasValue)
                     .OrderByDescending(x => x.ParsedDateTime.Value) // Most recent first
                     .ToArray();
-                
+
                 searchLog += $"Found {hstLogFiles.Length} HST log/txt files in ZIP (sorted by date, newest first):\n";
                 foreach (var logInfo in hstLogFiles.Take(10)) // Show first 10 for logging
                 {
                     searchLog += $"  - {logInfo.FileName} ({logInfo.ParsedDateTime.Value:yyyy-MM-dd HH:mm})\n";
                 }
-                
+
                 if (hstLogFiles.Length > 10)
                 {
                     searchLog += $"  ... and {hstLogFiles.Length - 10} more files\n";
                 }
-                
+
                 // Search through each HST log file (starting with most recent)
                 foreach (var logInfo in hstLogFiles)
                 {
                     try
                     {
                         searchLog += $"Searching {logInfo.FileName}... ";
-                        
+
                         string productCode = SearchLogFileForProductCode(logInfo.FilePath, ref searchLog);
                         if (!string.IsNullOrEmpty(productCode))
                         {
@@ -648,27 +650,28 @@ namespace SystemUtilizationMonitor.Services
                         searchLog += $"error: {ex.Message}\n";
                     }
                 }
-                
+
                 // Also check for any other .log/.txt files that might not match the strict pattern
                 var otherLogFiles = extractedLogFiles
-                    .Where(file => {
+                    .Where(file =>
+                    {
                         string fileName = Path.GetFileName(file);
                         return !Regex.IsMatch(fileName, @"\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-.*\.(log|txt)", RegexOptions.IgnoreCase);
                     })
                     .OrderByDescending(file => new FileInfo(file).LastWriteTime)
                     .ToArray();
-                
+
                 if (otherLogFiles.Length > 0)
                 {
                     searchLog += $"Also checking {otherLogFiles.Length} other .log/.txt files that don't match HST pattern:\n";
-                    
+
                     foreach (string logFile in otherLogFiles.Take(5)) // Limit to first 5 other files
                     {
                         try
                         {
                             string fileName = Path.GetFileName(logFile);
                             searchLog += $"Searching {fileName}... ";
-                            
+
                             string productCode = SearchLogFileForProductCode(logFile, ref searchLog);
                             if (!string.IsNullOrEmpty(productCode))
                             {
@@ -686,7 +689,7 @@ namespace SystemUtilizationMonitor.Services
                         }
                     }
                 }
-                
+
                 searchLog += $"Completed search of ZIP file {Path.GetFileName(zipFile)} - no product codes found\n";
             }
             catch (Exception ex)
@@ -708,7 +711,7 @@ namespace SystemUtilizationMonitor.Services
                     }
                 }
             }
-            
+
             return "";
         }
 
@@ -728,7 +731,7 @@ namespace SystemUtilizationMonitor.Services
                     int day = int.Parse(match.Groups[3].Value);
                     int hour = int.Parse(match.Groups[4].Value);
                     int minute = int.Parse(match.Groups[5].Value);
-                    
+
                     return new DateTime(year, month, day, hour, minute, 0);
                 }
             }
@@ -736,7 +739,7 @@ namespace SystemUtilizationMonitor.Services
             {
                 // Return null if parsing fails
             }
-            
+
             return null;
         }
 
@@ -1323,12 +1326,211 @@ namespace SystemUtilizationMonitor.Services
             };
         }
 
-        private (bool WasUsed, int ChangesDetected) AnalyzeFileActivity(string pathToRead, DataModelConfig dataModelConfigToRead)
+        private void InitializeStorage()
         {
-            // Your existing implementation...
-            return (false, 0);
+            if (!File.Exists(pathToStorage))
+            {
+                File.Create(pathToStorage).Close();
+            }
+
+            if (string.IsNullOrEmpty(File.ReadAllText(pathToStorage)))
+            {
+                List<DataModelStorage> newDataModelStorageList = new List<DataModelStorage>();
+                string dataModelStorageListJson = JsonConvert.SerializeObject(newDataModelStorageList, Formatting.Indented);
+                File.WriteAllText(pathToStorage, dataModelStorageListJson);
+            }
         }
 
+        private (bool WasUsed, int ChangesDetected) AnalyzeFileActivity(string pathToRead, DataModelConfig dataModelConfigToRead)
+        {
+            try
+            {
+                // Create copy of file for analysis
+                if (File.Exists(pathToReadCopy)) File.Delete(pathToReadCopy);
+                File.Copy(pathToRead, pathToReadCopy);
+
+                int lastLineWrote = File.ReadLines(pathToReadCopy).Count();
+
+                // Initialize or load storage
+                InitializeStorage();
+
+                string pathToStorageText = File.ReadAllText(pathToStorage);
+                List<DataModelStorage> dataModelStorageList = JsonConvert.DeserializeObject<List<DataModelStorage>>(pathToStorageText);
+
+                // Clean invalid data
+                dataModelStorageList.RemoveAll(dtms => string.IsNullOrEmpty(dtms.FilePath));
+
+                DataModelStorage dataModelStored = dataModelStorageList
+                    .FirstOrDefault(l => l.FilePath.Contains(dataModelConfigToRead.FilePath));
+
+                if (dataModelStored == null)
+                {
+                    dataModelStored = new DataModelStorage
+                    {
+                        FilePath = dataModelConfigToRead.FilePath,
+                        LastWriteTime = DateTime.Now.ToString(),
+                        NumlastLineWroteStorage = lastLineWrote <= 1250 ? 0 : lastLineWrote - 1250
+                    };
+                    dataModelStorageList.Add(dataModelStored);
+                }
+
+                int lastLineWriteToRead = dataModelStored.NumlastLineWroteStorage;
+                int changesDetected = Math.Max(0, lastLineWrote - lastLineWriteToRead);
+
+                // Update storage
+                dataModelStored.NumlastLineWroteStorage = lastLineWrote;
+                dataModelStored.LastWriteTime = DateTime.Now.ToString();
+
+                bool wasUsed = false;
+
+                if (lastLineWriteToRead != lastLineWrote)
+                {
+                    if (lastLineWriteToRead > lastLineWrote)
+                    {
+                        if (DateTime.Now.Date == DateTime.Now.AddMinutes(-10).Date)
+                            wasUsed = true;
+                    }
+
+                    if (string.IsNullOrEmpty(dataModelConfigToRead.NoContent) &&
+                        string.IsNullOrEmpty(dataModelConfigToRead.Skip))
+                    {
+                        wasUsed = true;
+                    }
+
+                    // Analyze new lines for activity
+                    wasUsed = wasUsed || AnalyzeNewLines(pathToReadCopy, dataModelConfigToRead,
+                        lastLineWriteToRead, lastLineWrote);
+                }
+                else if (!string.IsNullOrEmpty(dataModelConfigToRead.LastlineContent))
+                {
+                    wasUsed = CheckLastLineContent(pathToReadCopy, dataModelConfigToRead, lastLineWriteToRead);
+                }
+
+                // Save updated storage
+                string dataModelStorageListJsonUpdate = JsonConvert.SerializeObject(dataModelStorageList, Formatting.Indented);
+                File.WriteAllText(pathToStorage, dataModelStorageListJsonUpdate);
+
+                // Clean up
+                if (File.Exists(pathToReadCopy)) File.Delete(pathToReadCopy);
+
+                return (wasUsed, changesDetected);
+            }
+            catch (Exception)
+            {
+                return (false, 0);
+            }
+        }
+
+        private bool CheckLastLineContent(string pathToReadCopy, DataModelConfig dataModelConfigToRead, int lastLineWriteToRead)
+        {
+            try
+            {
+                string lineText = File.ReadLines(pathToReadCopy).Skip(lastLineWriteToRead - 1).Take(1).FirstOrDefault();
+                if (!string.IsNullOrEmpty(lineText))
+                {
+                    foreach (string lastLineContentWord in dataModelConfigToRead.LastlineContent.Split(';'))
+                    {
+                        if (lineText.Contains(lastLineContentWord))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Ignore errors in this check
+            }
+            return false;
+        }
+
+        private bool AnalyzeNewLines(string pathToReadCopy, DataModelConfig dataModelConfigToRead,
+           int lastLineWriteToRead, int lastLineWrote)
+        {
+            bool wasUsed = false;
+
+            // Parse skip rules
+            List<DataModelSkip> dataModelSkipList = new List<DataModelSkip>();
+            if (!string.IsNullOrEmpty(dataModelConfigToRead.Skip))
+            {
+                var skipData = dataModelConfigToRead.Skip.Split(';');
+                foreach (var s in skipData)
+                {
+                    DataModelSkip dataModelSkip = new DataModelSkip();
+                    if (s.Contains('|'))
+                    {
+                        var fromTo = s.Split('|');
+                        dataModelSkip.From = fromTo[0];
+                        dataModelSkip.To = fromTo[1];
+                    }
+                    else
+                    {
+                        dataModelSkip.From = s;
+                        dataModelSkip.To = string.Empty;
+                    }
+                    dataModelSkipList.Add(dataModelSkip);
+                }
+            }
+
+
+            // Analyze each new line
+            for (int i = lastLineWriteToRead + 1; i <= lastLineWrote && !wasUsed; i++)
+            {
+                string lineText = File.ReadLines(pathToReadCopy).Skip(i - 1).Take(1).FirstOrDefault();
+
+                if (!string.IsNullOrEmpty(lineText))
+                {
+                    bool skip = CheckIfLineSkipped(lineText, dataModelSkipList, pathToReadCopy, ref i, lastLineWrote);
+
+                    if (!skip && !string.IsNullOrEmpty(dataModelConfigToRead.NoContent))
+                    {
+                        var noContent = dataModelConfigToRead.NoContent.Split(';');
+                        foreach (var word in noContent)
+                        {
+                            if (!lineText.Contains(word))
+                            {
+                                wasUsed = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            return wasUsed;
+        }
+
+        private bool CheckIfLineSkipped(string lineText, List<DataModelSkip> dataModelSkipList,
+           string pathToReadCopy, ref int currentLine, int lastLineWrote)
+        {
+            foreach (var skipRule in dataModelSkipList)
+            {
+                if (lineText.Contains(skipRule.From))
+                {
+                    if (!string.IsNullOrEmpty(skipRule.To))
+                    {
+                        // Find the end of the skip section
+                        for (int f = currentLine + 1; f <= lastLineWrote; f++)
+                        {
+                            string textLineF = File.ReadLines(pathToReadCopy).Skip(f - 1).Take(1).FirstOrDefault();
+                            if (textLineF.Contains(skipRule.To))
+                            {
+                                currentLine = f - 1;
+                                return true;
+                            }
+                        }
+                    }
+                    return true;
+                }
+                else if (!string.IsNullOrEmpty(skipRule.To) && lineText.Contains(skipRule.To))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
         private void LogMonitoringResults(string pathsChecked, string errorMessage)
         {
             try

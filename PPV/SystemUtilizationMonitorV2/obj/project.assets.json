@@ -150,11 +150,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\SUM Src\\SystemUtilizationMonitorV2\\SystemUtilizationMonitorV2.csproj",
-      "projectName": "SystemUtilizationMonitorV2",
-      "projectPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\SUM Src\\SystemUtilizationMonitorV2\\SystemUtilizationMonitorV2.csproj",
+      "projectUniqueName": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj",
+      "projectName": "SystemUtilizationMonitor",
+      "projectPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj",
       "packagesPath": "C:\\Users\\aquesad1\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\SUM Src\\SystemUtilizationMonitorV2\\obj\\",
+      "outputPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\aquesad1\\AppData\\Roaming\\NuGet\\NuGet.Config"
