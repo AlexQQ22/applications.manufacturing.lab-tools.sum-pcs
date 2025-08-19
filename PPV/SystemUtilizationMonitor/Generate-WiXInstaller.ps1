@@ -115,11 +115,11 @@ Write-Host "Components: $($componentRefs.Count)" -ForegroundColor Cyan
 # Build MSI
 try {
     Write-Host "Building MSI..." -ForegroundColor Yellow
-    & "$WixPath\wix.exe" build -out "$OutputPath\SystemUtilization.Monitor.msi" $wxsFile
+    & "$WixPath\wix.exe" build -out "$OutputPath\SystemUtilization.Monitor.Installer.msi" $wxsFile
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "SUCCESS!" -ForegroundColor Green
-        $msiFile = Get-Item "$OutputPath\SystemUtilization.Monitor.msi"
+        $msiFile = Get-Item "$OutputPath\SystemUtilization.Monitor.Installer.msi"
         Write-Host "Location: $($msiFile.FullName)" -ForegroundColor Cyan
         Write-Host "Size: $([math]::Round($msiFile.Length / 1MB, 2)) MB" -ForegroundColor Cyan
     } else {
