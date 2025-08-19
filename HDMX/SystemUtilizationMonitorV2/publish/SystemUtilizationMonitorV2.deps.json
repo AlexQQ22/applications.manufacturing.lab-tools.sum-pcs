@@ -32,7 +32,7 @@
   },
   "targets": {
     ".NETCoreApp,Version=v8.0": {
-      "SystemUtilizationMonitorV2/1.0.0": {
+      "/1.0.0": {
         "dependencies": {
           "Newtonsoft.Json": "13.0.3",
           "System.Diagnostics.PerformanceCounter": "8.0.0",
@@ -225,7 +225,7 @@
           "WindowsBase": "4.0.0.0"
         },
         "compile": {
-          "SystemUtilizationMonitorV2.dll": {}
+          ".dll": {}
         }
       },
       "Accessibility/4.0.0.0": {
@@ -1171,7 +1171,7 @@
       "System.Diagnostics.PerformanceCounter/8.0.0": {}
     },
     ".NETCoreApp,Version=v8.0/win-x64": {
-      "SystemUtilizationMonitorV2/1.0.0": {
+      "/1.0.0": {
         "dependencies": {
           "Newtonsoft.Json": "13.0.3",
           "System.Diagnostics.PerformanceCounter": "8.0.0",
@@ -1366,7 +1366,7 @@
           "runtimepack.Microsoft.WindowsDesktop.App.Runtime.win-x64": "8.0.16"
         },
         "runtime": {
-          "SystemUtilizationMonitorV2.dll": {}
+          ".dll": {}
         }
       },
       "runtimepack.Microsoft.NETCore.App.Runtime.win-x64/8.0.16": {
@@ -2325,7 +2325,7 @@
     }
   },
   "libraries": {
-    "SystemUtilizationMonitorV2/1.0.0": {
+    "/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

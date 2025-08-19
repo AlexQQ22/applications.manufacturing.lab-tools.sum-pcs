@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\SystemUtilizationMonitorV2\\SystemUtilizationMonitorV2.csproj": {}
+    "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\\\.csproj": {}
   },
   "projects": {
-    "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\SystemUtilizationMonitorV2\\SystemUtilizationMonitorV2.csproj": {
+    "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\\\.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\SystemUtilizationMonitorV2\\SystemUtilizationMonitorV2.csproj",
-        "projectName": "SystemUtilizationMonitorV2",
-        "projectPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\SystemUtilizationMonitorV2\\SystemUtilizationMonitorV2.csproj",
+        "projectUniqueName": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\\\.csproj",
+        "projectName": "",
+        "projectPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\\\.csproj",
         "packagesPath": "C:\\Users\\aquesad1\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\SystemUtilizationMonitorV2\\obj\\",
+        "outputPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\aquesad1\\AppData\\Roaming\\NuGet\\NuGet.Config"

@@ -15,7 +15,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo Step 2: Checking if main executable exists...
-if not exist .\publish\SystemUtilizationMonitorV2.exe (
+if not exist .\publish\.exe (
     echo ERROR: Main executable not found!
     pause
     exit /b 1

@@ -7,14 +7,14 @@
   "targets": {
     ".NETCoreApp,Version=v10.0": {},
     ".NETCoreApp,Version=v10.0/win-x64": {
-      "SystemUtilizationMonitorV2/1.0.0": {
+      "/1.0.0": {
         "dependencies": {
           "Newtonsoft.Json": "13.0.3",
           "System.Diagnostics.PerformanceCounter": "9.0.6",
           "runtimepack.Microsoft.NETCore.App.Runtime.win-x64": "10.0.0-preview.5.25277.114"
         },
         "runtime": {
-          "SystemUtilizationMonitorV2.dll": {}
+          ".dll": {}
         }
       },
       "runtimepack.Microsoft.NETCore.App.Runtime.win-x64/10.0.0-preview.5.25277.114": {
@@ -759,7 +759,7 @@
     }
   },
   "libraries": {
-    "SystemUtilizationMonitorV2/1.0.0": {
+    "/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

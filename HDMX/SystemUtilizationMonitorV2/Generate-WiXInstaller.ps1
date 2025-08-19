@@ -24,7 +24,7 @@ $files = Get-ChildItem -Path $SourcePath -File
 Write-Host "Found $($files.Count) files" -ForegroundColor Cyan
 
 # Find main executable
-$mainExe = $files | Where-Object { $_.Name -eq "SystemUtilizationMonitorV2.exe" }
+$mainExe = $files | Where-Object { $_.Name -eq ".exe" }
 if (-not $mainExe) {
     Write-Host "Main executable not found!" -ForegroundColor Red
     exit 1

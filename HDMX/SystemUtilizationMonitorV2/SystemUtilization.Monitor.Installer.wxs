@@ -26,7 +26,7 @@
     <DirectoryRef Id="INSTALLFOLDER">
       <Component Id="SystemUtilizationMonitorExe">
         <File Id="SystemUtilizationMonitorExe" 
-              Source="$(var.SourceDir)\SystemUtilizationMonitorV2.exe" />
+              Source="$(var.SourceDir)\.exe" />
       </Component>
       
       <!-- Add any additional files like config files, DLLs, etc. -->
@@ -38,9 +38,9 @@
       <!-- Include common .NET runtime files -->
       <Component Id="RuntimeFiles">
         <File Id="RuntimeConfig" 
-              Source="$(var.SourceDir)\SystemUtilizationMonitorV2.runtimeconfig.json" />
+              Source="$(var.SourceDir)\.runtimeconfig.json" />
         <File Id="DepsJson" 
-              Source="$(var.SourceDir)\SystemUtilizationMonitorV2.deps.json" />
+              Source="$(var.SourceDir)\.deps.json" />
       </Component>
     </DirectoryRef>
 
