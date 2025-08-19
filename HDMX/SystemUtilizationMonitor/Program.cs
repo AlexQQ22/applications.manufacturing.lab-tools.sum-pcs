@@ -270,7 +270,7 @@ namespace SystemUtilizationMonitor
         private static void LoadConfiguration()
         {
             string configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Intel", "SystemUtilizationMonitor", "SystemUtilizationTimeFrames.json");
+                "Intel", "SystemUtilizationMonitor", "SystemUtilizationConfig.json");
 
             if (!File.Exists(configPath))
             {
@@ -291,29 +291,13 @@ namespace SystemUtilizationMonitor
             {
                 Jose = new Dictionary<string, MonitorTxtConfig>
                 {
-                    ["montior_txt_priority"] = new MonitorTxtConfig
-                    {
-                        FilePath = "C:\\STHI\\logs\\strut_detail_log_yyyy/MM/dd.txt",
-                        NoContent = "RmqEventsListener",
-                        Skip = "GetStatus;RetrieveHWConfigInfo =;CommandType =;CommandSource =;UniqueCommandId =;SysCClientUniqueCommandId =;SiteId =;AdditionalParameters =;TesterInfo.get_VMImageVersion - VMImageVersion:;TpCache.GetCachedTps - Test package caching is not currently implemented.;NetworkConfigurator.get_IpAddressToSpacialLocation - IP location mapping:;localhost: 1;HwConfig.CollectHwConfig;HwConfig.CreateSocketEntities;HwConfig.parseCMMSList;HwConfig.SerializeXml;xml version=;HWConfiguration;</;/>;<SocketEntity;<TesterExternalEntity;<TesterExternalEntity;<BoardBLT;<TesterCoreEntity;TesterHWConfigAsXMLString",
-                        FormatDate = "yyyy/MM/dd",
-                        LastlineContent = "EventManager.SendEvent - Send SiteInformationEvent Event to Supervisor for command UndefinedSiteCommand, uniqueCommandId 8888888888888888888, SysCClientUniqueCommandId:"
-                    },
                     ["montior_txt_normal_1"] = new MonitorTxtConfig
                     {
-                        FilePath = "C:\\Logs\\Aguila\\Sequencer 1\\TraceLog.txt"
+                        FilePath = "D:\\HDMT3\\logs\\commonhdmt\\hdmtOScommon.json",
                     },
                     ["montior_txt_normal_2"] = new MonitorTxtConfig
                     {
-                        FilePath = "C:\\Logs\\Aguila\\Sequencer 2\\TraceLog.txt"
-                    },
-                    ["montior_txt_normal_3"] = new MonitorTxtConfig
-                    {
-                        FilePath = "C:\\Logs\\Aguila\\Sequencer 3\\TraceLog.txt"
-                    },
-                    ["montior_txt_normal_4"] = new MonitorTxtConfig
-                    {
-                        FilePath = "C:\\Logs\\Aguila\\Sequencer 4\\TraceLog.txt"
+                        FilePath = "D:\\HDMT3\\logs\\commonhdmt\\hdmtOScommon.log",
                     }
                 },
                 SumPOR = new SumPORConfig

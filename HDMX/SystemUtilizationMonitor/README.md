@@ -8,7 +8,7 @@ powershell -ExecutionPolicy Bypass -File Generate-WiXInstaller.ps1
 
 -- Ready
 // TODO: Dont show console when executing
-// TODO: add json read in %LOCALAPPDATA%/Intel/SystemUtilizationMonitor/SystemUtilizationTimeFrames.json
+// TODO: add json read in %LOCALAPPDATA%/Intel/SystemUtilizationMonitor/SystemUtilizationConfig.json
 // TODO: When generating json follow the format of the samples
 // TODO: The json tells which txt files to read, if one changes then doesnt read the rest, reports to json files changed only 1 per new line
 // TODO: Read path to drop json

@@ -2,5 +2,5 @@
 /obj
 /publish
 *.dll
-SUM Src/SystemUtilizationMonitorV2/bin
-SUM Src/SystemUtilizationMonitorV2/bin/Release/net10.0/win-x64/publish/*.dll
+SUM Src/SystemUtilizationMonitor/bin
+SUM Src/SystemUtilizationMonitor/bin/Release/net10.0/win-x64/publish/*.dll
