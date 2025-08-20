@@ -40,6 +40,9 @@ namespace SystemUtilizationMonitor
         // PsExec execution tracking
         private static DateTime lastPsExecRun = DateTime.MinValue;
 
+        // Time continuity tracking - NEW
+        private static DateTime? lastEndTime = null;
+
         [STAThread]
         public static void Main(string[] args)
         {
@@ -76,6 +79,9 @@ namespace SystemUtilizationMonitor
                 // Initialize for current day
                 InitializeForCurrentDay();
 
+                // Load last end time from existing file for continuity - NEW
+                LoadLastEndTimeForContinuity();
+
                 // Setup configuration for monitoring
                 SetupMonitoringConfiguration();
 
@@ -111,6 +117,53 @@ namespace SystemUtilizationMonitor
             finally
             {
                 Cleanup();
+            }
+        }
+
+        // NEW METHOD: Load the last end time from existing file for continuity
+        private static void LoadLastEndTimeForContinuity()
+        {
+            try
+            {
+                if (File.Exists(currentOutputFile))
+                {
+                    string[] lines = File.ReadAllLines(currentOutputFile);
+                    
+                    // Read from the end to find the most recent EndTime
+                    for (int i = lines.Length - 1; i >= 0; i--)
+                    {
+                        string line = lines[i].Trim();
+                        if (!string.IsNullOrEmpty(line))
+                        {
+                            try
+                            {
+                                // Parse the JSON line to extract EndTime
+                                var jsonData = JsonConvert.DeserializeObject<UtilizationTimeFrame>(line);
+                                if (jsonData != null && jsonData.EndTime != DateTime.MinValue)
+                                {
+                                    lastEndTime = jsonData.EndTime;
+                                    LogInfo($"Loaded last end time for continuity: {lastEndTime:yyyy-MM-ddTHH:mm:ss.fffffffZ}");
+                                    break;
+                                }
+                            }
+                            catch (JsonException)
+                            {
+                                // Skip malformed JSON lines and continue looking
+                                continue;
+                            }
+                        }
+                    }
+                }
+                
+                if (lastEndTime == null)
+                {
+                    LogInfo("No previous end time found. Starting fresh.");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error loading last end time: {ex.Message}");
+                lastEndTime = null; // Reset to null on error
             }
         }
 
@@ -505,17 +558,30 @@ namespace SystemUtilizationMonitor
             }
         }
 
+        // MODIFIED METHOD: MonitoringLoop with continuous time tracking
         private static void MonitoringLoop()
         {
             while (!shouldStop)
             {
-                var startTime = DateTime.Now.AddHours(6);
+                // MODIFIED: Use lastEndTime for continuity, or current time if no previous end time
+                var startTime = lastEndTime ?? DateTime.Now.AddHours(6);
 
                 // Check if we need to switch to a new day's file
                 if (DateTime.Now.AddHours(6).Date != currentDay)
                 {
                     InitializeForCurrentDay();
+                    LoadLastEndTimeForContinuity(); // Reload for the new day
                     LogInfo($"Switched to new daily file: {currentOutputFile}");
+                    
+                    // If we switched days and no previous end time in new file, use current time
+                    if (lastEndTime == null)
+                    {
+                        startTime = DateTime.Now.AddHours(6);
+                    }
+                    else
+                    {
+                        startTime = lastEndTime.Value;
+                    }
                 }
 
                 // Reset counters
@@ -533,10 +599,14 @@ namespace SystemUtilizationMonitor
 
                 if (shouldStop) break;
 
-                var endTime = DateTime.Now.AddHours(6);
+                // MODIFIED: Calculate endTime based on startTime + interval for precise timing
+                var endTime = startTime.Add(config.RecordInterval);
 
                 // Collect utilization data
                 var timeFrame = CollectUtilizationData(startTime, endTime);
+
+                // MODIFIED: Update lastEndTime to maintain continuity
+                lastEndTime = endTime;
 
                 // Write to file
                 LogInfo($"Saved JSON to: {currentOutputFile}");
@@ -545,7 +615,8 @@ namespace SystemUtilizationMonitor
                 LogInfo($"[{endTime:HH:mm:ss}] Data collected " +
                        $"Mouse: {timeFrame.MouseEvents}, Keyboard: {timeFrame.KeyboardEvents}, " +
                        $"File Changes: {timeFrame.FileChanges.Count}, Product: {timeFrame.Product}, " +
-                       $"Last PsExec: {(lastPsExecRun == DateTime.MinValue ? "Never" : lastPsExecRun.ToString("HH:mm:ss"))}");
+                       $"Last PsExec: {(lastPsExecRun == DateTime.MinValue ? "Never" : lastPsExecRun.ToString("HH:mm:ss"))}, " +
+                       $"Timeframe: {startTime:HH:mm:ss.fff} -> {endTime:HH:mm:ss.fff}");
             }
         }
 

@@ -1,5 +1,6 @@
 dotnet publish -c Release -r win-x64 --self-contained true -o .\bin\Release\net10.0\win-x64\publish
 powershell -ExecutionPolicy Bypass -File Generate-WiXInstaller.ps1
+PASS PUBLISH FROM BIN WIN-10 X64 PUBLISH TO ROOT FOLDER WHEN GENERATING MSI
 
     // VALIDATE: Read delete files rate 20 days example
     // VALIDATE: In the fusion json add shouldReadLogFiles = false or true to activate the whole txt logs thighy
