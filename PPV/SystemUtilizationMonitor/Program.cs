@@ -79,9 +79,6 @@ namespace SystemUtilizationMonitor
                 // Initialize for current day
                 InitializeForCurrentDay();
 
-                // Load last end time from existing file for continuity - NEW
-                LoadLastEndTimeForContinuity();
-
                 // Setup configuration for monitoring
                 SetupMonitoringConfiguration();
 
@@ -121,52 +118,6 @@ namespace SystemUtilizationMonitor
         }
 
         // NEW METHOD: Load the last end time from existing file for continuity
-        private static void LoadLastEndTimeForContinuity()
-        {
-            try
-            {
-                if (File.Exists(currentOutputFile))
-                {
-                    string[] lines = File.ReadAllLines(currentOutputFile);
-                    
-                    // Read from the end to find the most recent EndTime
-                    for (int i = lines.Length - 1; i >= 0; i--)
-                    {
-                        string line = lines[i].Trim();
-                        if (!string.IsNullOrEmpty(line))
-                        {
-                            try
-                            {
-                                // Parse the JSON line to extract EndTime
-                                var jsonData = JsonConvert.DeserializeObject<UtilizationTimeFrame>(line);
-                                if (jsonData != null && jsonData.EndTime != DateTime.MinValue)
-                                {
-                                    lastEndTime = jsonData.EndTime;
-                                    LogInfo($"Loaded last end time for continuity: {lastEndTime:yyyy-MM-ddTHH:mm:ss.fffffffZ}");
-                                    break;
-                                }
-                            }
-                            catch (JsonException)
-                            {
-                                // Skip malformed JSON lines and continue looking
-                                continue;
-                            }
-                        }
-                    }
-                }
-                
-                if (lastEndTime == null)
-                {
-                    LogInfo("No previous end time found. Starting fresh.");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError($"Error loading last end time: {ex.Message}");
-                lastEndTime = null; // Reset to null on error
-            }
-        }
-
         private static void StartPsExecTask()
         {
             Task.Factory.StartNew(async delegate ()
@@ -570,7 +521,6 @@ namespace SystemUtilizationMonitor
                 if (DateTime.Now.AddHours(6).Date != currentDay)
                 {
                     InitializeForCurrentDay();
-                    LoadLastEndTimeForContinuity(); // Reload for the new day
                     LogInfo($"Switched to new daily file: {currentOutputFile}");
                     
                     // If we switched days and no previous end time in new file, use current time
