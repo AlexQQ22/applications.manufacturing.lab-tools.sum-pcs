@@ -41,7 +41,7 @@ namespace SystemUtilizationMonitor
         private static DateTime lastPsExecRun = DateTime.MinValue;
 
         // Time continuity tracking - NEW
-        private static DateTime? lastEndTime = null;
+        private static DateTime lastEndTime = DateTime.UtcNow;
 
         [STAThread]
         public static void Main(string[] args)
@@ -399,7 +399,7 @@ namespace SystemUtilizationMonitor
 
         private static void InitializeForCurrentDay()
         {
-            currentDay = DateTime.Now.AddHours(6).Date;
+            currentDay = DateTime.UtcNow.Date;
             currentOutputFile = Path.Combine(outputDirectory,
                 $"SystemUtilizationTimeFrames{currentDay:yyyyMMdd}.json");
         }
@@ -509,37 +509,92 @@ namespace SystemUtilizationMonitor
             }
         }
 
-        // MODIFIED METHOD: MonitoringLoop with continuous time tracking
+
+        private static DateTime MakeSureFromJSON(DateTime startTime)
+        {
+            try
+            {
+                // If the JSON file doesn't exist, return the original startTime
+                if (!File.Exists(currentOutputFile))
+                {
+                    LogInfo("JSON file doesn't exist yet, using original startTime");
+                    return startTime;
+                }
+
+                // Read all lines from the JSON file
+                string[] lines = File.ReadAllLines(currentOutputFile);
+
+                if (lines.Length == 0)
+                {
+                    LogInfo("JSON file is empty, using original startTime");
+                    return startTime;
+                }
+
+                // Get the last line (most recent entry)
+                string lastLine = lines[lines.Length - 1].Trim();
+
+                if (string.IsNullOrEmpty(lastLine))
+                {
+                    LogInfo("Last line is empty, using original startTime");
+                    return startTime;
+                }
+
+                // Extract EndTime from the JSON line using regex
+                var endTimeRegex = new Regex(@"""EndTime"":""([^""]+)""", RegexOptions.IgnoreCase);
+                var match = endTimeRegex.Match(lastLine);
+
+                if (!match.Success)
+                {
+                    LogInfo("Could not find EndTime in last JSON line, using original startTime");
+                    return startTime;
+                }
+
+                string endTimeString = match.Groups[1].Value;
+
+                // FIXED: Parse as UTC and specify DateTimeKind
+                if (!DateTime.TryParse(endTimeString, null, System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out DateTime lastEndTime))
+                {
+                    LogInfo($"Could not parse EndTime '{endTimeString}', using original startTime");
+                    return startTime;
+                }
+
+                // FIXED: Ensure the parsed time is treated as UTC
+                lastEndTime = DateTime.SpecifyKind(lastEndTime, DateTimeKind.Utc);
+
+                LogInfo($"Adjusted startTime from {startTime:HH:mm:ss.fffffff} to {lastEndTime:HH:mm:ss.fffffff} based on last EndTime");
+
+                return lastEndTime;
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error in MakeSureFromJSON: {ex.Message}");
+                return startTime; // Return original on error
+            }
+        }
+
+        // MODIFIED METHOD: MonitoringLoop with precise time continuity
         private static void MonitoringLoop()
         {
             while (!shouldStop)
             {
                 // MODIFIED: Use lastEndTime for continuity, or current time if no previous end time
-                var startTime = lastEndTime ?? DateTime.Now.AddHours(6);
-
+                var startTime = lastEndTime;
                 // Check if we need to switch to a new day's file
-                if (DateTime.Now.AddHours(6).Date != currentDay)
+                if (DateTime.UtcNow.Date != currentDay)
                 {
                     InitializeForCurrentDay();
                     LogInfo($"Switched to new daily file: {currentOutputFile}");
-                    
-                    // If we switched days and no previous end time in new file, use current time
-                    if (lastEndTime == null)
-                    {
-                        startTime = DateTime.Now.AddHours(6);
-                    }
-                    else
-                    {
-                        startTime = lastEndTime.Value;
-                    }
                 }
+
+                // MODIFIED: Calculate endTime based on startTime + interval for precise timing
+                // This ensures exact continuity by forcing the endTime to be exactly startTime + interval
+                var endTime = startTime.Add(config.RecordInterval);
 
                 // Reset counters
                 ResetCounters();
 
                 try
                 {
-                    // Wait for the monitoring interval
                     Thread.Sleep(config.RecordInterval);
                 }
                 catch (ThreadInterruptedException)
@@ -549,15 +604,14 @@ namespace SystemUtilizationMonitor
 
                 if (shouldStop) break;
 
-                // MODIFIED: Calculate endTime based on startTime + interval for precise timing
-                var endTime = startTime.Add(config.RecordInterval);
+                // MODIFIED: Ensure endTime is exactly what we calculated, not based on actual current time
+                // This maintains perfect continuity regardless of execution timing variations
+                startTime = MakeSureFromJSON(startTime);
 
-                // Collect utilization data
                 var timeFrame = CollectUtilizationData(startTime, endTime);
 
-                // MODIFIED: Update lastEndTime to maintain continuity
+                // MODIFIED: Update lastEndTime to maintain continuity - this is now guaranteed to be exact
                 lastEndTime = endTime;
-
                 // Write to file
                 LogInfo($"Saved JSON to: {currentOutputFile}");
                 WriteToFile(currentOutputFile, timeFrame);
@@ -569,7 +623,6 @@ namespace SystemUtilizationMonitor
                        $"Timeframe: {startTime:HH:mm:ss.fff} -> {endTime:HH:mm:ss.fff}");
             }
         }
-
         private static UtilizationTimeFrame CollectUtilizationData(DateTime startTime, DateTime endTime)
         {
             var timeFrame = new UtilizationTimeFrame();
@@ -753,14 +806,14 @@ namespace SystemUtilizationMonitor
             // Log to console if debug mode is enabled
             if (appConfig?.SumPOR?.Debug == true)
             {
-                Console.WriteLine($"[{DateTime.Now.AddHours(6):HH:mm:ss}] INFO: {message}");
+                Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] INFO: {message}");
             }
 
             // Always log to file
             try
             {
                 string logFile = Path.Combine(outputDirectory, "SystemUtilizationMonitor.log");
-                File.AppendAllText(logFile, $"[{DateTime.Now.AddHours(6):yyyy-MM-dd HH:mm:ss}] INFO: {message}{Environment.NewLine}");
+                File.AppendAllText(logFile, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] INFO: {message}{Environment.NewLine}");
             }
             catch { }
         }
@@ -770,14 +823,14 @@ namespace SystemUtilizationMonitor
             // Log to console if debug mode is enabled
             if (appConfig?.SumPOR?.Debug == true)
             {
-                Console.WriteLine($"[{DateTime.Now.AddHours(6):HH:mm:ss}] ERROR: {message}");
+                Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] ERROR: {message}");
             }
 
             // Always log to file
             try
             {
                 string logFile = Path.Combine(outputDirectory, "SystemUtilizationMonitor.log");
-                File.AppendAllText(logFile, $"[{DateTime.Now.AddHours(6):yyyy-MM-dd HH:mm:ss}] ERROR: {message}{Environment.NewLine}");
+                File.AppendAllText(logFile, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ERROR: {message}{Environment.NewLine}");
             }
             catch { }
         }

@@ -41,7 +41,7 @@ namespace SystemUtilizationMonitor
         private static DateTime lastPsExecRun = DateTime.MinValue;
 
         // Time continuity tracking - NEW
-        private static DateTime? lastEndTime = null;
+        private static DateTime lastEndTime = DateTime.UtcNow;
 
         [STAThread]
         public static void Main(string[] args)
@@ -102,7 +102,7 @@ namespace SystemUtilizationMonitor
                 StartFileCleanupTask();
 
                 // Start PsExec execution task
-                StartPsExecTask();
+                // StartPsExecTask();
 
                 // Main monitoring loop
                 MonitoringLoop();
@@ -117,7 +117,7 @@ namespace SystemUtilizationMonitor
             }
         }
 
-    
+        // NEW METHOD: Load the last end time from existing file for continuity
         private static void StartPsExecTask()
         {
             Task.Factory.StartNew(async delegate ()
@@ -286,6 +286,9 @@ namespace SystemUtilizationMonitor
             appConfig = JsonConvert.DeserializeObject<ConfigurationModel>(jsonContent);
         }
 
+
+
+
         private static void CreateDefaultConfiguration(string configPath)
         {
             // Ensure directory exists
@@ -293,32 +296,25 @@ namespace SystemUtilizationMonitor
 
             var defaultConfig = new ConfigurationModel
             {
+
                 Jose = new Dictionary<string, MonitorTxtConfig>
                 {
                     ["montior_txt_priority"] = new MonitorTxtConfig
                     {
-                        FilePath = "C:\\STHI\\logs\\strut_detail_log_yyyy/MM/dd.txt",
-                        NoContent = "RmqEventsListener",
-                        Skip = "GetStatus;RetrieveHWConfigInfo =;CommandType =;CommandSource =;UniqueCommandId =;SysCClientUniqueCommandId =;SiteId =;AdditionalParameters =;TesterInfo.get_VMImageVersion - VMImageVersion:;TpCache.GetCachedTps - Test package caching is not currently implemented.;NetworkConfigurator.get_IpAddressToSpacialLocation - IP location mapping:;localhost: 1;HwConfig.CollectHwConfig;HwConfig.CreateSocketEntities;HwConfig.parseCMMSList;HwConfig.SerializeXml;xml version=;HWConfiguration;</;/>;<SocketEntity;<TesterExternalEntity;<TesterExternalEntity;<BoardBLT;<TesterCoreEntity;TesterHWConfigAsXMLString",
+                        FilePath = "D:\\HDMT3\\logs\\commonhdmt\\hdmtOScommon.json",
+                        NoContent = "",
+                        Skip = "",
                         FormatDate = "yyyy/MM/dd",
-                        LastlineContent = "EventManager.SendEvent - Send SiteInformationEvent Event to Supervisor for command UndefinedSiteCommand, uniqueCommandId 8888888888888888888, SysCClientUniqueCommandId:"
+                        LastlineContent = ""
                     },
-                    ["montior_txt_normal_1"] = new MonitorTxtConfig
+                    ["montior_txt_priority_2"] = new MonitorTxtConfig
                     {
-                        FilePath = "C:\\Logs\\Aguila\\Sequencer 1\\TraceLog.txt"
+                        FilePath = "D:\\HDMT3\\logs\\commonhdmt\\hdmtOScommon.log",
+                        NoContent = "",
+                        Skip = "",
+                        FormatDate = "yyyy/MM/dd",
+                        LastlineContent = ""
                     },
-                    ["montior_txt_normal_2"] = new MonitorTxtConfig
-                    {
-                        FilePath = "C:\\Logs\\Aguila\\Sequencer 2\\TraceLog.txt"
-                    },
-                    ["montior_txt_normal_3"] = new MonitorTxtConfig
-                    {
-                        FilePath = "C:\\Logs\\Aguila\\Sequencer 3\\TraceLog.txt"
-                    },
-                    ["montior_txt_normal_4"] = new MonitorTxtConfig
-                    {
-                        FilePath = "C:\\Logs\\Aguila\\Sequencer 4\\TraceLog.txt"
-                    }
                 },
                 SumPOR = new SumPORConfig
                 {
@@ -357,6 +353,7 @@ namespace SystemUtilizationMonitor
             string jsonContent = JsonConvert.SerializeObject(defaultConfig, Formatting.Indented);
             File.WriteAllText(configPath, jsonContent);
         }
+
         private static void SetupOutputDirectory()
         {
             // Use JsonOutputPath from config if specified, otherwise use default
@@ -399,7 +396,7 @@ namespace SystemUtilizationMonitor
 
         private static void InitializeForCurrentDay()
         {
-            currentDay = DateTime.Now.AddHours(6).Date;
+            currentDay = DateTime.UtcNow.Date;
             currentOutputFile = Path.Combine(outputDirectory,
                 $"SystemUtilizationTimeFrames{currentDay:yyyyMMdd}.json");
         }
@@ -509,37 +506,30 @@ namespace SystemUtilizationMonitor
             }
         }
 
-        // MODIFIED METHOD: MonitoringLoop with continuous time tracking
+
+        // MODIFIED METHOD: MonitoringLoop with precise time continuity
         private static void MonitoringLoop()
         {
             while (!shouldStop)
             {
                 // MODIFIED: Use lastEndTime for continuity, or current time if no previous end time
-                var startTime = lastEndTime ?? DateTime.Now.AddHours(6);
-
+                var startTime = lastEndTime;
                 // Check if we need to switch to a new day's file
-                if (DateTime.Now.AddHours(6).Date != currentDay)
+                if (DateTime.UtcNow.Date != currentDay)
                 {
                     InitializeForCurrentDay();
                     LogInfo($"Switched to new daily file: {currentOutputFile}");
-                    
-                    // If we switched days and no previous end time in new file, use current time
-                    if (lastEndTime == null)
-                    {
-                        startTime = DateTime.Now.AddHours(6);
-                    }
-                    else
-                    {
-                        startTime = lastEndTime.Value;
-                    }
                 }
+
+                // MODIFIED: Calculate endTime based on startTime + interval for precise timing
+                // This ensures exact continuity by forcing the endTime to be exactly startTime + interval
+                var endTime = startTime.Add(config.RecordInterval);
 
                 // Reset counters
                 ResetCounters();
 
                 try
                 {
-                    // Wait for the monitoring interval
                     Thread.Sleep(config.RecordInterval);
                 }
                 catch (ThreadInterruptedException)
@@ -549,15 +539,10 @@ namespace SystemUtilizationMonitor
 
                 if (shouldStop) break;
 
-                // MODIFIED: Calculate endTime based on startTime + interval for precise timing
-                var endTime = startTime.Add(config.RecordInterval);
-
-                // Collect utilization data
                 var timeFrame = CollectUtilizationData(startTime, endTime);
 
-                // MODIFIED: Update lastEndTime to maintain continuity
+                // MODIFIED: Update lastEndTime to maintain continuity - this is now guaranteed to be exact
                 lastEndTime = endTime;
-
                 // Write to file
                 LogInfo($"Saved JSON to: {currentOutputFile}");
                 WriteToFile(currentOutputFile, timeFrame);
@@ -569,7 +554,6 @@ namespace SystemUtilizationMonitor
                        $"Timeframe: {startTime:HH:mm:ss.fff} -> {endTime:HH:mm:ss.fff}");
             }
         }
-
         private static UtilizationTimeFrame CollectUtilizationData(DateTime startTime, DateTime endTime)
         {
             var timeFrame = new UtilizationTimeFrame();
@@ -753,14 +737,14 @@ namespace SystemUtilizationMonitor
             // Log to console if debug mode is enabled
             if (appConfig?.SumPOR?.Debug == true)
             {
-                Console.WriteLine($"[{DateTime.Now.AddHours(6):HH:mm:ss}] INFO: {message}");
+                Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] INFO: {message}");
             }
 
             // Always log to file
             try
             {
                 string logFile = Path.Combine(outputDirectory, "SystemUtilizationMonitor.log");
-                File.AppendAllText(logFile, $"[{DateTime.Now.AddHours(6):yyyy-MM-dd HH:mm:ss}] INFO: {message}{Environment.NewLine}");
+                File.AppendAllText(logFile, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] INFO: {message}{Environment.NewLine}");
             }
             catch { }
         }
@@ -770,14 +754,14 @@ namespace SystemUtilizationMonitor
             // Log to console if debug mode is enabled
             if (appConfig?.SumPOR?.Debug == true)
             {
-                Console.WriteLine($"[{DateTime.Now.AddHours(6):HH:mm:ss}] ERROR: {message}");
+                Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] ERROR: {message}");
             }
 
             // Always log to file
             try
             {
                 string logFile = Path.Combine(outputDirectory, "SystemUtilizationMonitor.log");
-                File.AppendAllText(logFile, $"[{DateTime.Now.AddHours(6):yyyy-MM-dd HH:mm:ss}] ERROR: {message}{Environment.NewLine}");
+                File.AppendAllText(logFile, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ERROR: {message}{Environment.NewLine}");
             }
             catch { }
         }
@@ -852,7 +836,6 @@ namespace SystemUtilizationMonitor
                 return "ERROR_GETTING_PRODUCT";
             }
         }
-
         /// <summary>
         /// Method 1: HDMX - Extract product from TesterHwConfig.xml using SerialNumber regex
         /// </summary>
@@ -872,22 +855,23 @@ namespace SystemUtilizationMonitor
 
                 string xmlContent = File.ReadAllText(configFilePath);
 
-                // Regex to match SerialNumber: X pattern
-                var serialNumberRegex = new System.Text.RegularExpressions.Regex(
-                    @"SerialNumber:\s*([^\s,<>]+)",
+                // Regex to match SerialNumber in lines that contain BoardName="TIU"
+                var tiuSerialNumberRegex = new System.Text.RegularExpressions.Regex(
+                    @"BoardName=""TIU""[^>]*SerialNumber=""([^""]+)""",
                     System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
                 );
 
-                var match = serialNumberRegex.Match(xmlContent);
+                var match = tiuSerialNumberRegex.Match(xmlContent);
                 if (match.Success)
                 {
                     string serialNumber = match.Groups[1].Value.Trim();
-                    LogInfo($"Found SerialNumber in HDMX config: {serialNumber}");
+
+                    LogInfo($"Found TIU SerialNumber in HDMX config: {serialNumber}");
                     return serialNumber;
                 }
                 else
                 {
-                    LogInfo("SerialNumber pattern not found in TesterHwConfig.xml");
+                    LogInfo("TIU SerialNumber pattern not found in TesterHwConfig.xml");
                     return "";
                 }
             }
@@ -897,6 +881,7 @@ namespace SystemUtilizationMonitor
                 return "";
             }
         }
+
 
         /// <summary>
         /// Method 2: HST Method 1 - c:\hst\tpcache\o\D7\{folder1}\{folder2}

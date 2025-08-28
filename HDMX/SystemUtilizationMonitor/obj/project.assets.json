@@ -150,11 +150,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\\\.csproj",
-      "projectName": "",
-      "projectPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\\\.csproj",
+      "projectUniqueName": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj",
+      "projectName": "SystemUtilizationMonitor",
+      "projectPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj",
       "packagesPath": "C:\\Users\\aquesad1\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\\\obj\\",
+      "outputPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\HDMX\\SystemUtilizationMonitor\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\aquesad1\\AppData\\Roaming\\NuGet\\NuGet.Config"

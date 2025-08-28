@@ -1,4 +1,4 @@
-dotnet publish -c Release -r win-x64 --self-contained true -o .\bin\Release\net10.0\win-x64\publish
+dotnet publish SystemUtilizationMonitor.csproj -c Release -r win-x64 --self-contained true 
 powershell -ExecutionPolicy Bypass -File Generate-WiXInstaller.ps1
 PASS PUBLISH FROM BIN WIN-10 X64 PUBLISH TO ROOT FOLDER WHEN GENERATING MSI
 

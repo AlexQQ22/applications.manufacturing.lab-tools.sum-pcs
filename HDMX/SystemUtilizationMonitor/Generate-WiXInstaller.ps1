@@ -24,7 +24,7 @@ $files = Get-ChildItem -Path $SourcePath -File
 Write-Host "Found $($files.Count) files" -ForegroundColor Cyan
 
 # Find main executable
-$mainExe = $files | Where-Object { $_.Name -eq ".exe" }
+$mainExe = $files | Where-Object { $_.Extension -eq ".exe" } | Select-Object -First 1
 if (-not $mainExe) {
     Write-Host "Main executable not found!" -ForegroundColor Red
     exit 1
@@ -53,6 +53,20 @@ $wxsContent += "`n" + '    </StandardDirectory>'
 $wxsContent += "`n" + '    <StandardDirectory Id="ProgramMenuFolder">'
 $wxsContent += "`n" + '      <Directory Id="ApplicationProgramsFolder" Name="System Utilization Monitor"/>'
 $wxsContent += "`n" + '    </StandardDirectory>'
+
+# Add custom action to remove existing folder
+$wxsContent += "`n" + '    <!-- Custom action to remove existing folder -->'
+$wxsContent += "`n" + '    <CustomAction Id="RemoveExistingFolder"'
+$wxsContent += "`n" + '                  Directory="INSTALLFOLDER"'
+$wxsContent += "`n" + '                  ExeCommand="cmd.exe /c if exist &quot;[INSTALLFOLDER]&quot; rmdir /s /q &quot;[INSTALLFOLDER]&quot;"'
+$wxsContent += "`n" + '                  Execute="immediate"'
+$wxsContent += "`n" + '                  Return="ignore" />'
+
+# Add install sequence
+$wxsContent += "`n" + '    <InstallExecuteSequence>'
+$wxsContent += "`n" + '      <Custom Action="RemoveExistingFolder" Before="InstallFiles" Condition="NOT Installed" />'
+$wxsContent += "`n" + '    </InstallExecuteSequence>'
+
 $wxsContent += "`n" + '    <DirectoryRef Id="INSTALLFOLDER">'
 
 $componentRefs = @()
@@ -76,6 +90,14 @@ foreach ($file in $otherFiles) {
     $componentRefs += "Component_$componentIndex"
     $componentIndex++
 }
+
+# Add component for folder removal on install
+$guidFolderCleanup = [System.Guid]::NewGuid().ToString().ToUpper()
+$wxsContent += "`n" + "      <Component Id=`"FolderCleanupComponent`" Guid=`"$guidFolderCleanup`">"
+$wxsContent += "`n" + "        <CreateFolder />"
+$wxsContent += "`n" + "        <RemoveFolder Id=`"RemoveINSTALLFOLDER`" On=`"uninstall`" />"
+$wxsContent += "`n" + "      </Component>"
+$componentRefs += "FolderCleanupComponent"
 
 # Close directory and add shortcuts
 $wxsContent += "`n" + '    </DirectoryRef>'

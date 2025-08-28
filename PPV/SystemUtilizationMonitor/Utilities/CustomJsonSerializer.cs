@@ -12,8 +12,9 @@ namespace SystemUtilizationMonitor.Utilities
         {
             var parts = new List<string>();
 
-            parts.Add("\"StartTime\":\"" + timeFrame.StartTime.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") + "\"");
-            parts.Add("\"EndTime\":\"" + timeFrame.EndTime.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") + "\"");
+            // FIXED: Properly convert to UTC and format
+            parts.Add("\"StartTime\":\"" + timeFrame.StartTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") + "\"");
+            parts.Add("\"EndTime\":\"" + timeFrame.EndTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") + "\"");
             parts.Add("\"MachineName\":\"" + EscapeJson(timeFrame.MachineName) + "\"");
             parts.Add("\"Product\":\"" + timeFrame.Product + "\"");
             parts.Add("\"MouseEvents\":" + timeFrame.MouseEvents);

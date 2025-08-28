@@ -12,8 +12,8 @@ namespace SystemUtilizationMonitor.Utilities
         {
             var parts = new List<string>();
 
-            parts.Add("\"StartTime\":\"" + timeFrame.StartTime.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") + "\"");
-            parts.Add("\"EndTime\":\"" + timeFrame.EndTime.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ") + "\"");
+            parts.Add("\"StartTime\":\"" + timeFrame.StartTime.ToString("yyyy-MM-ddTHH:mm:ssZ") + "\"");
+            parts.Add("\"EndTime\":\"" + timeFrame.EndTime.ToString("yyyy-MM-ddTHH:mm:ssZ") + "\"");
             parts.Add("\"MachineName\":\"" + EscapeJson(timeFrame.MachineName) + "\"");
             parts.Add("\"Product\":\"" + timeFrame.Product + "\"");
             parts.Add("\"MouseEvents\":" + timeFrame.MouseEvents);
