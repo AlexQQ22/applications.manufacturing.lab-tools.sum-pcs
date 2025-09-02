@@ -258,14 +258,14 @@ namespace SystemUtilizationMonitor.Services
             return null;
         }
 
-        private void CopyFileWithRetry(string sourceFile, string destFile)
+        public void CopyFileWithRetry(string sourceFile, string destFile)
         {
             for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++)
             {
                 try
                 {
                     using (var source = new FileStream(sourceFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                    using (var dest = new FileStream(destFile, FileMode.Create, FileAccess.Write))
+                    using (var dest = new FileStream(destFile, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
                     {
                         source.CopyTo(dest);
                         return;
@@ -1248,6 +1248,65 @@ namespace SystemUtilizationMonitor.Services
             return "";
         }
 
+        // Add this method to ActivityMonitoringService class
+        public Dictionary<string, uint> AnalyzeSystemActivityFromTempPaths(Dictionary<string, string> tempCopyPaths)
+        {
+            var fileChanges = new Dictionary<string, uint>();
+
+            try
+            {
+                bool wasUsed = false;
+                string paths_checked = string.Empty;
+                string firstChangedFile = string.Empty;
+
+                foreach (var configEntry in appConfig.Jose)
+                {
+                    if (wasUsed) break;
+
+                    var dataModelConfigToRead = ConvertToDataModelConfig(configEntry.Value);
+                    string originalPath = Path.GetDirectoryName(dataModelConfigToRead.FilePath);
+
+                    // Find the temp path for this directory
+                    if (tempCopyPaths.ContainsKey(originalPath))
+                    {
+                        string tempDir = tempCopyPaths[originalPath];
+                        string fileName = Path.GetFileName(dataModelConfigToRead.FilePath);
+                        string tempFilePath = Path.Combine(tempDir, fileName);
+
+                        if (File.Exists(tempFilePath))
+                        {
+                            var activityResult = AnalyzeFileActivity(tempFilePath, dataModelConfigToRead);
+                            wasUsed = activityResult.WasUsed;
+
+                            if (wasUsed)
+                            {
+                                firstChangedFile = tempFilePath;
+                                fileChanges[tempFilePath] = (uint)activityResult.ChangesDetected;
+                                paths_checked += $"\n{tempFilePath} had changes indicating the tester had activity\n";
+                                break;
+                            }
+                            else
+                            {
+                                paths_checked += $"\n{tempFilePath} indicated that tester had NOT activity\n";
+                            }
+                        }
+                        else
+                        {
+                            paths_checked += $"\n{tempFilePath} this path doesn't exist in temp, therefore indicate the Tester had NOT activity\n";
+                        }
+                    }
+                }
+
+                LogMonitoringResults(paths_checked, null);
+                return fileChanges;
+            }
+            catch (Exception ex)
+            {
+                LogMonitoringResults(null, ex.Message);
+                return fileChanges;
+            }
+        }
+
         /// <summary>
         /// Returns the last known non-null product code
         /// </summary>
@@ -1530,7 +1589,7 @@ namespace SystemUtilizationMonitor.Services
             }
             return false;
         }
-        
+
         private void LogMonitoringResults(string pathsChecked, string errorMessage)
         {
             try

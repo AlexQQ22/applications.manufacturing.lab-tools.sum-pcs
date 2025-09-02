@@ -26,6 +26,8 @@ namespace SystemUtilizationMonitor
         private static string currentOutputFile;
         private static DateTime currentDay;
         private static ConfigurationModel appConfig;
+        private static readonly Dictionary<string, string> tempCopyPaths = new Dictionary<string, string>();
+        private static readonly object copyLockObj = new object();
 
         // Input monitoring
         private static InputHookManager inputHook;
@@ -401,6 +403,7 @@ namespace SystemUtilizationMonitor
                 $"SystemUtilizationTimeFrames{currentDay:yyyyMMdd}.json");
         }
 
+
         private static void SetupMonitoringConfiguration()
         {
             config = new MonitorConfiguration();
@@ -422,12 +425,23 @@ namespace SystemUtilizationMonitor
                                 Path = directoryPath,
                                 Filter = "*.*"
                             });
+
+                            // Create unique temp copy path for this directory
+                            string tempCopyPath = Path.Combine(Path.GetTempPath(),
+                                $"SUM_Copy_{Path.GetFileName(directoryPath)}_{Guid.NewGuid().ToString("N")[..8]}");
+
+                            if (!Directory.Exists(tempCopyPath))
+                            {
+                                Directory.CreateDirectory(tempCopyPath);
+                            }
+
+                            tempCopyPaths[directoryPath] = tempCopyPath;
+                            LogInfo($"Created temp copy directory for {directoryPath}: {tempCopyPath}");
                         }
                     }
                 }
             }
         }
-
         private static void SetupCancellation()
         {
             Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
@@ -507,13 +521,85 @@ namespace SystemUtilizationMonitor
         }
 
 
-        // MODIFIED METHOD: MonitoringLoop with precise time continuity
+
+        // NEW METHOD: Non-blocking directory copy
+        private static void CopyDirectoryFilesNonBlocking(string sourceDir, string destDir)
+        {
+            lock (copyLockObj)
+            {
+                try
+                {
+                    // Ensure destination directory exists
+                    if (!Directory.Exists(destDir))
+                    {
+                        Directory.CreateDirectory(destDir);
+                    }
+
+                    // Get all files from source directory
+                    string[] sourceFiles = Directory.GetFiles(sourceDir);
+
+                    foreach (string sourceFile in sourceFiles)
+                    {
+                        try
+                        {
+                            string fileName = Path.GetFileName(sourceFile);
+                            string destFile = Path.Combine(destDir, fileName);
+
+                            // Use non-blocking copy with FileShare.ReadWrite to avoid file locking
+                            using (var sourceStream = new FileStream(sourceFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                            using (var destStream = new FileStream(destFile, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
+                            {
+                                sourceStream.CopyTo(destStream);
+                            }
+                        }
+                        catch (IOException ioEx)
+                        {
+                            // Log but don't fail the entire operation for one file
+                            LogError($"Could not copy file {Path.GetFileName(sourceFile)}: {ioEx.Message}");
+                        }
+                        catch (UnauthorizedAccessException uaEx)
+                        {
+                            // Log but don't fail the entire operation for one file
+                            LogError($"Access denied copying file {Path.GetFileName(sourceFile)}: {uaEx.Message}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError($"Error copying directory {sourceDir} to {destDir}: {ex.Message}");
+                }
+            }
+        }
+
+
+        // Modified MonitoringLoop method
         private static void MonitoringLoop()
         {
             while (!shouldStop)
             {
-                // MODIFIED: Use lastEndTime for continuity, or current time if no previous end time
+                // MODIFIED: Copy files from each watched directory to their respective temp locations
+                foreach (var directoryWatch in config.DirectoriesToWatch)
+                {
+                    if (Directory.Exists(directoryWatch.Path) && tempCopyPaths.ContainsKey(directoryWatch.Path))
+                    {
+                        try
+                        {
+                            string sourcePath = directoryWatch.Path;
+                            string tempPath = tempCopyPaths[directoryWatch.Path];
+
+                            // Copy all files from source to temp directory without blocking
+                            CopyDirectoryFilesNonBlocking(sourcePath, tempPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            LogError($"Could not copy files from directory {directoryWatch.Path}: {ex.Message}");
+                        }
+                    }
+                }
+
+                // Use lastEndTime for continuity, or current time if no previous end time
                 var startTime = lastEndTime;
+
                 // Check if we need to switch to a new day's file
                 if (DateTime.UtcNow.Date != currentDay)
                 {
@@ -521,8 +607,7 @@ namespace SystemUtilizationMonitor
                     LogInfo($"Switched to new daily file: {currentOutputFile}");
                 }
 
-                // MODIFIED: Calculate endTime based on startTime + interval for precise timing
-                // This ensures exact continuity by forcing the endTime to be exactly startTime + interval
+                // Calculate endTime based on startTime + interval for precise timing
                 var endTime = startTime.Add(config.RecordInterval);
 
                 // Reset counters
@@ -541,8 +626,9 @@ namespace SystemUtilizationMonitor
 
                 var timeFrame = CollectUtilizationData(startTime, endTime);
 
-                // MODIFIED: Update lastEndTime to maintain continuity - this is now guaranteed to be exact
+                // Update lastEndTime to maintain continuity
                 lastEndTime = endTime;
+
                 // Write to file
                 LogInfo($"Saved JSON to: {currentOutputFile}");
                 WriteToFile(currentOutputFile, timeFrame);
@@ -601,6 +687,8 @@ namespace SystemUtilizationMonitor
             return timeSpan.ToString(@"hh\:mm\:ss\.fffffff");
         }
 
+
+        // Modified ActivityMonitoringService usage to work with temp paths
         private static void CollectFileChanges(UtilizationTimeFrame timeFrame)
         {
             // If file monitoring is disabled, skip
@@ -625,12 +713,13 @@ namespace SystemUtilizationMonitor
                 }
             }
 
-            // Use activity monitoring service to get intelligent file analysis
+            // Use activity monitoring service with temp paths
             if (activityMonitor != null)
             {
                 try
                 {
-                    var activityFileChanges = activityMonitor.AnalyzeSystemActivity();
+                    // Pass the temp copy paths to the activity monitor
+                    var activityFileChanges = activityMonitor.AnalyzeSystemActivityFromTempPaths(tempCopyPaths);
 
                     // If any activity detected, only report the first one
                     if (activityFileChanges.Count > 0)
@@ -648,15 +737,19 @@ namespace SystemUtilizationMonitor
             }
         }
 
+
+        // Modified InitializeFileWatchers to use temp paths
         private static void InitializeFileWatchers()
         {
             foreach (var directoryWatch in config.DirectoriesToWatch)
             {
-                if (Directory.Exists(directoryWatch.Path))
+                if (tempCopyPaths.ContainsKey(directoryWatch.Path))
                 {
                     try
                     {
-                        var watcher = new FileSystemWatcher(directoryWatch.Path, directoryWatch.Filter);
+                        string tempPath = tempCopyPaths[directoryWatch.Path];
+
+                        var watcher = new FileSystemWatcher(tempPath, directoryWatch.Filter);
                         watcher.IncludeSubdirectories = false;
                         watcher.InternalBufferSize = 524288;
                         watcher.EnableRaisingEvents = true;
@@ -668,11 +761,11 @@ namespace SystemUtilizationMonitor
                         watcher.Error += OnFileSystemError;
 
                         watchers.Add(watcher);
-                        LogInfo("Watching directory: " + directoryWatch.Path);
+                        LogInfo($"Watching temp directory: {tempPath} (source: {directoryWatch.Path})");
                     }
                     catch (Exception ex)
                     {
-                        LogError("Could not watch directory " + directoryWatch.Path + ": " + ex.Message);
+                        LogError($"Could not watch temp directory for {directoryWatch.Path}: {ex.Message}");
                     }
                 }
             }
@@ -766,6 +859,7 @@ namespace SystemUtilizationMonitor
             catch { }
         }
 
+        // Modified Cleanup method to clean up temp directories
         private static void Cleanup()
         {
             // Stop input hooks
@@ -782,6 +876,23 @@ namespace SystemUtilizationMonitor
                     watcher.Dispose();
                 }
                 catch { }
+            }
+
+            // Clean up temp copy directories
+            foreach (var tempPath in tempCopyPaths.Values)
+            {
+                try
+                {
+                    if (Directory.Exists(tempPath))
+                    {
+                        Directory.Delete(tempPath, true);
+                        LogInfo($"Cleaned up temp directory: {tempPath}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError($"Could not clean up temp directory {tempPath}: {ex.Message}");
+                }
             }
 
             LogInfo("Cleanup completed.");
