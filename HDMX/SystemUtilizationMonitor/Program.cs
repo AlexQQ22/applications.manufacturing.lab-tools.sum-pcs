@@ -251,7 +251,7 @@ namespace SystemUtilizationMonitor
         {
             config = new MonitorConfiguration();
 
-            config.RecordInterval = TimeSpan.FromSeconds(15);
+            config.RecordInterval = TimeSpan.FromMinutes(5);
 
         }
         private static void SetupCancellation()

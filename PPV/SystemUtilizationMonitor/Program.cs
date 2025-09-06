@@ -21,6 +21,8 @@ namespace SystemUtilizationMonitor
         private static readonly Dictionary<string, uint> basicFileChanges = new Dictionary<string, uint>();
         private static readonly object lockObj = new object();
         private static MonitorConfiguration config;
+        private static DateTime lastVmConnectKill = DateTime.UtcNow;
+
         private static bool shouldStop = false;
         private static string outputDirectory;
         private static string currentOutputFile;
@@ -175,7 +177,7 @@ namespace SystemUtilizationMonitor
                 {
                     ShouldReadLogFiles = true,
                     Debug = false,
-                    ProductLogPath = @"", 
+                    ProductLogPath = @"",
                     Args = new ArgsConfig
                     {
                         RollingInterval = "Day",
@@ -257,7 +259,7 @@ namespace SystemUtilizationMonitor
         {
             config = new MonitorConfiguration();
 
-            config.RecordInterval = TimeSpan.FromSeconds(15); 
+            config.RecordInterval = TimeSpan.FromSeconds(10);
 
         }
         private static void SetupCancellation()
@@ -294,7 +296,7 @@ namespace SystemUtilizationMonitor
                     try
                     {
                         CleanupOldFiles();
-                        Thread.Sleep(TimeSpan.FromHours(1)); 
+                        Thread.Sleep(TimeSpan.FromHours(1));
                     }
                     catch (Exception ex)
                     {
@@ -311,7 +313,7 @@ namespace SystemUtilizationMonitor
             {
                 var files = Directory.GetFiles(outputDirectory, "SystemUtilizationTimeFrames*.json")
                     .Select(f => new FileInfo(f))
-                    .Where(f => !f.Name.Equals("SystemUtilizationTimeFrames.json", StringComparison.OrdinalIgnoreCase)) 
+                    .Where(f => !f.Name.Equals("SystemUtilizationTimeFrames.json", StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(f => f.CreationTime)
                     .ToList();
 
@@ -336,10 +338,52 @@ namespace SystemUtilizationMonitor
             }
         }
 
+
+        // Add this new method to the Program class:
+        private static void KillVmConnectProcesses()
+        {
+            try
+            {
+                Process[] vmConnectProcesses = Process.GetProcessesByName("vmconnect");
+
+                if (vmConnectProcesses.Length > 0)
+                {
+                    LogInfo($"Found {vmConnectProcesses.Length} vmconnect process(es) to terminate");
+
+                    foreach (Process process in vmConnectProcesses)
+                    {
+                        try
+                        {
+                            LogInfo($"Attempting to kill vmconnect process with PID: {process.Id}");
+                            process.Kill();
+                            process.WaitForExit(5000); // Wait up to 5 seconds for graceful exit
+                            LogInfo($"Successfully killed vmconnect process with PID: {process.Id}");
+                        }
+                        catch (Exception ex)
+                        {
+                            LogError($"Failed to kill vmconnect process with PID: {process.Id}. Error: {ex.Message}");
+                        }
+                        finally
+                        {
+                            process.Dispose();
+                        }
+                    }
+                }
+                else
+                {
+                    LogInfo("No vmconnect processes found to terminate");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error while searching for vmconnect processes: {ex.Message}");
+            }
+        }
+
         private static void MonitoringLoop()
         {
             while (!shouldStop)
-            { 
+            {
                 var startTime = lastEndTime;
                 logInfo = string.Empty;
 
@@ -348,6 +392,14 @@ namespace SystemUtilizationMonitor
                     InitializeForCurrentDay();
                     LogInfo($"Switched to new daily file: {currentOutputFile}");
                 }
+
+                // Check if 60 minutes have passed since last vmconnect kill
+                if (DateTime.UtcNow.Subtract(lastVmConnectKill).TotalMinutes >= 60)
+                {
+                    KillVmConnectProcesses();
+                    lastVmConnectKill = DateTime.UtcNow;
+                }
+
 
                 var endTime = startTime.Add(config.RecordInterval);
                 ResetCounters();
@@ -384,7 +436,45 @@ namespace SystemUtilizationMonitor
                 timeFrame.KeyboardEvents = inputHook.GetKeyboardEventCount();
             }
 
-            timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
+            MonitoringVMs monitoringVMs = new MonitoringVMs();
+            bool vmInUse = false;
+
+            try
+            {
+                // Set a timeout for the VM check to prevent hanging
+                var vmCheckTask = Task.Run(() => monitoringVMs.CheckVMsAsync());
+
+                // Wait for the task to complete with a timeout (e.g., 5 seconds)
+                if (vmCheckTask.Wait(TimeSpan.FromSeconds(5)))
+                {
+                    vmInUse = vmCheckTask.Result;
+                    LogInfo($"VM check completed successfully. VMs in use: {vmInUse}");
+                }
+                else
+                {
+                    LogError("VM check timed out after 5 seconds, continuing with file monitoring");
+                    vmInUse = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"VM monitoring failed with error: {ex.Message}, continuing with file monitoring");
+                vmInUse = false;
+            }
+
+            // Continue with the logic regardless of VM check results
+            if (vmInUse)
+            {
+                timeFrame.FileChanges.Clear();
+                timeFrame.FileChanges.Add("VMs In Use By VMC", 1);
+                LogInfo("VMs detected in use, skipping file monitoring");
+            }
+            else
+            {
+                timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
+                LogInfo("No VMs in use or VM check failed, proceeding with file monitoring");
+            }
+
             return timeFrame;
         }
 
@@ -425,7 +515,7 @@ namespace SystemUtilizationMonitor
 
             try
             {
-                logInfo = logInfo +  $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] INFO: {message}{Environment.NewLine} \n";
+                logInfo = logInfo + $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] INFO: {message}{Environment.NewLine} \n";
 
             }
             catch { }

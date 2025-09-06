@@ -34,6 +34,7 @@
     ".NETCoreApp,Version=v8.0": {
       "SystemUtilizationMonitor/1.0.0": {
         "dependencies": {
+          "MouseKeyHook": "5.6.0",
           "Newtonsoft.Json": "13.0.3",
           "System.Diagnostics.PerformanceCounter": "8.0.0",
           "Accessibility": "4.0.0.0",
@@ -1163,6 +1164,11 @@
           "WindowsBase.dll": {}
         }
       },
+      "MouseKeyHook/5.6.0": {
+        "compile": {
+          "lib/net40/Gma.System.MouseKeyHook.dll": {}
+        }
+      },
       "Newtonsoft.Json/13.0.3": {
         "compile": {
           "lib/net6.0/Newtonsoft.Json.dll": {}
@@ -1173,6 +1179,7 @@
     ".NETCoreApp,Version=v8.0/win-x64": {
       "SystemUtilizationMonitor/1.0.0": {
         "dependencies": {
+          "MouseKeyHook": "5.6.0",
           "Newtonsoft.Json": "13.0.3",
           "System.Diagnostics.PerformanceCounter": "8.0.0",
           "Accessibility": "4.0.0.0",
@@ -2314,6 +2321,14 @@
           }
         }
       },
+      "MouseKeyHook/5.6.0": {
+        "runtime": {
+          "lib/net40/Gma.System.MouseKeyHook.dll": {
+            "assemblyVersion": "5.6.130.0",
+            "fileVersion": "5.6.130.0"
+          }
+        }
+      },
       "Newtonsoft.Json/13.0.3": {
         "runtime": {
           "lib/net6.0/Newtonsoft.Json.dll": {
@@ -2339,6 +2354,13 @@
       "type": "runtimepack",
       "serviceable": false,
       "sha512": ""
+    },
+    "MouseKeyHook/5.6.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-xDNM10IfRED0+k78O9VvY0/suqeNJVg6GttEFPP/N4CEMujwVrfU+UatFN7Rb+gdjqIfhKblz7/nG3pUQmHaJg==",
+      "path": "mousekeyhook/5.6.0",
+      "hashPath": "mousekeyhook.5.6.0.nupkg.sha512"
     },
     "Newtonsoft.Json/13.0.3": {
       "type": "package",
