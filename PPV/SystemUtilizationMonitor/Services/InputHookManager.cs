@@ -180,15 +180,15 @@ namespace SystemUtilizationMonitor.Services
 
         private void OnRawKeyboardInput(object sender, RawKeyboardEventArgs e)
         {
-            // Log raw keyboard input
-            try
-            {
-                string logEntry = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - RAW - VKey: {e.VKey}, MakeCode: {e.MakeCode}, Flags: {e.Flags}, Message: {e.Message}{Environment.NewLine}";
-                System.IO.File.AppendAllText(@"C:\temp\raw_keyboard.log", logEntry);
-            }
-            catch
-            {
-            }
+            //// Log raw keyboard input
+            //try
+            //{
+            //    string logEntry = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - RAW - VKey: {e.VKey}, MakeCode: {e.MakeCode}, Flags: {e.Flags}, Message: {e.Message}{Environment.NewLine}";
+            //    System.IO.File.AppendAllText(@"C:\temp\raw_keyboard.log", logEntry);
+            //}
+            //catch
+            //{
+            //}
 
             // Count key press events (not releases)
             if ((e.Flags & 0x01) == 0) // RI_KEY_MAKE (key press, not release)
@@ -220,14 +220,14 @@ namespace SystemUtilizationMonitor.Services
         private IntPtr KeyboardHookProc(int nCode, IntPtr wParam, IntPtr lParam)
         {
             // Log traditional hook to C:\temp\keyboard.log
-            try
-            {
-                string logEntry = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - HOOK - nCode: {nCode}, wParam: {wParam}, lParam: {lParam}{Environment.NewLine}";
-                System.IO.File.AppendAllText(@"C:\temp\keyboard.log", logEntry);
-            }
-            catch
-            {
-            }
+            //try
+            //{
+            //    string logEntry = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - HOOK - nCode: {nCode}, wParam: {wParam}, lParam: {lParam}{Environment.NewLine}";
+            //    System.IO.File.AppendAllText(@"C:\temp\keyboard.log", logEntry);
+            //}
+            //catch
+            //{
+            //}
 
             if (nCode >= 0)
             {

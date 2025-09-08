@@ -20,12 +20,14 @@ namespace SystemUtilizationMonitor.Utilities
             parts.Add("\"MouseEvents\":" + timeFrame.MouseEvents);
             parts.Add("\"KeyboardEvents\":" + timeFrame.KeyboardEvents);
 
-            var fileParts = new List<string>();
-            foreach (var kvp in timeFrame.FileChanges)
-            {
-                fileParts.Add("\"" + EscapeJson(kvp.Key) + "\":" + kvp.Value);
-            }
-            parts.Add("\"FileChanges\":{" + string.Join(",", fileParts.ToArray()) + "}");
+            //var fileParts = new List<string>();
+            //foreach (var kvp in timeFrame.FileChanges)
+            //{
+            //    fileParts.Add("\"" + EscapeJson(kvp.Key) + "\":" + kvp.Value);
+            //}
+            //parts.Add("\"FileChanges\":{" + string.Join(",", fileParts.ToArray()) + "}");
+
+            parts.Add("\"FileChanges\":{\"" +  timeFrame.FileChanges + "\"}");
             return "{" + string.Join(",", parts.ToArray()) + "}";
         }
 

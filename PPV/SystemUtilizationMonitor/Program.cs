@@ -21,7 +21,7 @@ namespace SystemUtilizationMonitor
         private static readonly Dictionary<string, uint> basicFileChanges = new Dictionary<string, uint>();
         private static readonly object lockObj = new object();
         private static MonitorConfiguration config;
-        private static DateTime lastVmConnectKill = DateTime.UtcNow;
+        //private static DateTime lastVmConnectKill = DateTime.UtcNow;
 
         private static bool shouldStop = false;
         private static string outputDirectory;
@@ -66,6 +66,8 @@ namespace SystemUtilizationMonitor
                     Console.WriteLine($"Hook Constants: Keyboard={appConfig.Hook.WH_KEYBOARD_LL}, Mouse={appConfig.Hook.WH_MOUSE_LL}");
                     Console.WriteLine($"Mouse Constants: LButton={appConfig.Mouse.WM_LBUTTONDOWN}, RButton={appConfig.Mouse.WM_RBUTTONDOWN}, Move={appConfig.Mouse.WM_MOUSEMOVE}");
                     Console.WriteLine($"Keyboard Constants: KeyDown={appConfig.Keyboard.WM_KEYDOWN}, SysKeyDown={appConfig.Keyboard.WM_SYSKEYDOWN}");
+                    Console.WriteLine($"VM Configuration: Username={appConfig.VM.Username}, Password=***");
+                    Console.WriteLine($"Monitoring Configuration: RecordInterval={appConfig.Monitoring.RecordIntervalMinutes} minutes");
                     Console.WriteLine("Press Ctrl+C to stop...");
                     Console.WriteLine("==========================================");
                 }
@@ -141,7 +143,7 @@ namespace SystemUtilizationMonitor
 
         private static void CreateDefaultConfiguration(string configPath)
         {
-
+            // Ensure directory exists
             Directory.CreateDirectory(Path.GetDirectoryName(configPath));
 
             var defaultConfig = new ConfigurationModel
@@ -177,7 +179,6 @@ namespace SystemUtilizationMonitor
                 {
                     ShouldReadLogFiles = true,
                     Debug = false,
-                    ProductLogPath = @"",
                     Args = new ArgsConfig
                     {
                         RollingInterval = "Day",
@@ -204,12 +205,22 @@ namespace SystemUtilizationMonitor
                     WH_KEYBOARD_LL = 13,
                     WH_MOUSE_LL = 14
                 },
+                VM = new VMConfig
+                {
+                    Username = "cc3user",
+                    Password = "sthi"
+                },
+                Monitoring = new MonitoringConfig
+                {
+                    RecordIntervalMinutes = 5
+                },
                 JsonOutputPath = ""
             };
 
             string jsonContent = JsonConvert.SerializeObject(defaultConfig, Formatting.Indented);
             File.WriteAllText(configPath, jsonContent);
         }
+
         private static void SetupOutputDirectory()
         {
 
@@ -259,9 +270,10 @@ namespace SystemUtilizationMonitor
         {
             config = new MonitorConfiguration();
 
-            config.RecordInterval = TimeSpan.FromSeconds(10);
-
+            // Use the configuration value instead of hardcoded value
+            config.RecordInterval = TimeSpan.FromMinutes(appConfig.Monitoring.RecordIntervalMinutes);
         }
+
         private static void SetupCancellation()
         {
             Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
@@ -339,46 +351,46 @@ namespace SystemUtilizationMonitor
         }
 
 
-        // Add this new method to the Program class:
-        private static void KillVmConnectProcesses()
-        {
-            try
-            {
-                Process[] vmConnectProcesses = Process.GetProcessesByName("vmconnect");
+        //// Add this new method to the Program class:
+        //private static void KillVmConnectProcesses()
+        //{
+        //    try
+        //    {
+        //        Process[] vmConnectProcesses = Process.GetProcessesByName("vmconnect");
 
-                if (vmConnectProcesses.Length > 0)
-                {
-                    LogInfo($"Found {vmConnectProcesses.Length} vmconnect process(es) to terminate");
+        //        if (vmConnectProcesses.Length > 0)
+        //        {
+        //            LogInfo($"Found {vmConnectProcesses.Length} vmconnect process(es) to terminate");
 
-                    foreach (Process process in vmConnectProcesses)
-                    {
-                        try
-                        {
-                            LogInfo($"Attempting to kill vmconnect process with PID: {process.Id}");
-                            process.Kill();
-                            process.WaitForExit(5000); // Wait up to 5 seconds for graceful exit
-                            LogInfo($"Successfully killed vmconnect process with PID: {process.Id}");
-                        }
-                        catch (Exception ex)
-                        {
-                            LogError($"Failed to kill vmconnect process with PID: {process.Id}. Error: {ex.Message}");
-                        }
-                        finally
-                        {
-                            process.Dispose();
-                        }
-                    }
-                }
-                else
-                {
-                    LogInfo("No vmconnect processes found to terminate");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError($"Error while searching for vmconnect processes: {ex.Message}");
-            }
-        }
+        //            foreach (Process process in vmConnectProcesses)
+        //            {
+        //                try
+        //                {
+        //                    LogInfo($"Attempting to kill vmconnect process with PID: {process.Id}");
+        //                    process.Kill();
+        //                    process.WaitForExit(5000); // Wait up to 5 seconds for graceful exit
+        //                    LogInfo($"Successfully killed vmconnect process with PID: {process.Id}");
+        //                }
+        //                catch (Exception ex)
+        //                {
+        //                    LogError($"Failed to kill vmconnect process with PID: {process.Id}. Error: {ex.Message}");
+        //                }
+        //                finally
+        //                {
+        //                    process.Dispose();
+        //                }
+        //            }
+        //        }
+        //        else
+        //        {
+        //            LogInfo("No vmconnect processes found to terminate");
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        LogError($"Error while searching for vmconnect processes: {ex.Message}");
+        //    }
+        //}
 
         private static void MonitoringLoop()
         {
@@ -394,11 +406,11 @@ namespace SystemUtilizationMonitor
                 }
 
                 // Check if 60 minutes have passed since last vmconnect kill
-                if (DateTime.UtcNow.Subtract(lastVmConnectKill).TotalMinutes >= 60)
-                {
-                    KillVmConnectProcesses();
-                    lastVmConnectKill = DateTime.UtcNow;
-                }
+                //if (DateTime.UtcNow.Subtract(lastVmConnectKill).TotalMinutes >= 60)
+                //{
+                //    KillVmConnectProcesses();
+                //    lastVmConnectKill = DateTime.UtcNow;
+                //}
 
 
                 var endTime = startTime.Add(config.RecordInterval);
@@ -422,6 +434,7 @@ namespace SystemUtilizationMonitor
                 WriteToFile(currentOutputFile, timeFrame);
             }
         }
+
         private static UtilizationTimeFrame CollectUtilizationData(DateTime startTime, DateTime endTime)
         {
             var timeFrame = new UtilizationTimeFrame();
@@ -436,7 +449,8 @@ namespace SystemUtilizationMonitor
                 timeFrame.KeyboardEvents = inputHook.GetKeyboardEventCount();
             }
 
-            MonitoringVMs monitoringVMs = new MonitoringVMs();
+            // Create MonitoringVMs instance with configuration
+            MonitoringVMs monitoringVMs = new MonitoringVMs(appConfig);
             bool vmInUse = false;
 
             try
@@ -465,8 +479,8 @@ namespace SystemUtilizationMonitor
             // Continue with the logic regardless of VM check results
             if (vmInUse)
             {
-                timeFrame.FileChanges.Clear();
-                timeFrame.FileChanges.Add("VMs In Use By VMC", 1);
+                timeFrame.FileChanges = string.Empty;
+                timeFrame.FileChanges = "VMs In Use By VMC or hyperV";
                 LogInfo("VMs detected in use, skipping file monitoring");
             }
             else
@@ -505,6 +519,7 @@ namespace SystemUtilizationMonitor
                 LogError("Error writing to file: " + ex.Message);
             }
         }
+
         private static void LogInfo(string message)
         {
 

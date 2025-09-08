@@ -12,6 +12,8 @@ namespace SystemUtilizationMonitor.Models
         public MouseConfig Mouse { get; set; }
         public KeyboardConfig Keyboard { get; set; }
         public HookConfig Hook { get; set; }
+        public VMConfig VM { get; set; }
+        public MonitoringConfig Monitoring { get; set; }
         public string JsonOutputPath { get; set; }
 
         public ConfigurationModel()
@@ -21,7 +23,31 @@ namespace SystemUtilizationMonitor.Models
             Mouse = new MouseConfig();
             Keyboard = new KeyboardConfig();
             Hook = new HookConfig();
+            VM = new VMConfig();
+            Monitoring = new MonitoringConfig();
             JsonOutputPath = "";
+        }
+    }
+
+    public class VMConfig
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+
+        public VMConfig()
+        {
+            Username = "cc3user";
+            Password = "sthi";
+        }
+    }
+
+    public class MonitoringConfig
+    {
+        public int RecordIntervalMinutes { get; set; }
+
+        public MonitoringConfig()
+        {
+            RecordIntervalMinutes = 5;
         }
     }
 
@@ -73,7 +99,7 @@ namespace SystemUtilizationMonitor.Models
         {
             Args = new ArgsConfig();
             Debug = false;
-            ProductLogPath = @"\\CR03THHX2989\c$\Users\Public\Documents\PEER Group\PTO TC HDMx\HDMx\Logs\PTO.DiagnosticLog"; // Default value
+            
         }
     }
 
@@ -121,13 +147,14 @@ namespace SystemUtilizationMonitor.Models
         public DateTime EndTime { get; set; }
         public int MouseEvents { get; set; }
         public int KeyboardEvents { get; set; }
-        public Dictionary<string, uint> FileChanges { get; set; }
+        //public Dictionary<string, uint> FileChanges { get; set; }
+        public string FileChanges { get; set; }
         public string Product { get; set; }
         public string MachineName { get; set; }
 
         public UtilizationTimeFrame()
         {
-            FileChanges = new Dictionary<string, uint>();
+            FileChanges =  "";
             Product = ""; // Initialize with empty string
             MachineName = "";
         }

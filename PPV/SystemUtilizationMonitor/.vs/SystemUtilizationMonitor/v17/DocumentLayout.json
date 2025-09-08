@@ -1,22 +1,30 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\josecar1\\OneDrive - Intel Corporation\\Desktop\\SystemUtilizationMonitor\\",
+  "WorkspaceRootPath": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\onedrive - intel corporation\\desktop\\systemutilizationmonitor\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\ppv\\systemutilizationmonitor\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\onedrive - intel corporation\\desktop\\systemutilizationmonitor\\services\\monitoringsum.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\ppv\\systemutilizationmonitor\\services\\monitoringsum.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|solutionrelative:services\\monitoringsum.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\onedrive - intel corporation\\desktop\\systemutilizationmonitor\\utilities\\customjsonserializer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\ppv\\systemutilizationmonitor\\utilities\\customjsonserializer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|solutionrelative:utilities\\customjsonserializer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\onedrive - intel corporation\\desktop\\systemutilizationmonitor\\models\\datamodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\ppv\\systemutilizationmonitor\\models\\datamodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|solutionrelative:models\\datamodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\ppv\\systemutilizationmonitor\\services\\inputhookmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|solutionrelative:services\\inputhookmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\ppv\\systemutilizationmonitor\\generate-wixinstaller.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|solutionrelative:generate-wixinstaller.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}"
     }
   ],
   "DocumentGroupContainers": [
@@ -26,7 +34,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 6,
+          "SelectedChildIndex": 8,
           "Children": [
             {
               "$type": "Bookmark",
@@ -42,75 +50,75 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "CustomJsonSerializer.cs",
-              "DocumentMoniker": "C:\\Users\\josecar1\\OneDrive - Intel Corporation\\Desktop\\SystemUtilizationMonitor\\Utilities\\CustomJsonSerializer.cs",
-              "RelativeDocumentMoniker": "Utilities\\CustomJsonSerializer.cs",
-              "ToolTip": "C:\\Users\\josecar1\\OneDrive - Intel Corporation\\Desktop\\SystemUtilizationMonitor\\Utilities\\CustomJsonSerializer.cs",
-              "RelativeToolTip": "Utilities\\CustomJsonSerializer.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAABRAAAAAAAAAA==",
+              "DocumentIndex": 1,
+              "Title": "MonitoringSUM.cs",
+              "DocumentMoniker": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Services\\MonitoringSUM.cs",
+              "RelativeDocumentMoniker": "Services\\MonitoringSUM.cs",
+              "ToolTip": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Services\\MonitoringSUM.cs",
+              "RelativeToolTip": "Services\\MonitoringSUM.cs",
+              "ViewState": "AgIAAP0AAAAAAAAAAAAlwBcBAABTAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-04T17:55:10.759Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-08T16:43:16.089Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "MonitoringSUM.cs",
-              "DocumentMoniker": "C:\\Users\\josecar1\\OneDrive - Intel Corporation\\Desktop\\SystemUtilizationMonitor\\Services\\MonitoringSUM.cs",
-              "RelativeDocumentMoniker": "Services\\MonitoringSUM.cs",
-              "ToolTip": "C:\\Users\\josecar1\\OneDrive - Intel Corporation\\Desktop\\SystemUtilizationMonitor\\Services\\MonitoringSUM.cs",
-              "RelativeToolTip": "Services\\MonitoringSUM.cs",
-              "ViewState": "AgIAAOQBAAAAAAAAAAAAAA4CAAA+AAAAAAAAAA==",
+              "DocumentIndex": 3,
+              "Title": "DataModel.cs",
+              "DocumentMoniker": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Models\\DataModel.cs",
+              "RelativeDocumentMoniker": "Models\\DataModel.cs",
+              "ToolTip": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Models\\DataModel.cs",
+              "RelativeToolTip": "Models\\DataModel.cs",
+              "ViewState": "AgIAAIQAAAAAAAAAAAAywJkAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-03T19:22:34.042Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-08T16:08:56.333Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Generate-WiXInstaller.ps1",
+              "DocumentMoniker": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Generate-WiXInstaller.ps1",
+              "RelativeDocumentMoniker": "Generate-WiXInstaller.ps1",
+              "ToolTip": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Generate-WiXInstaller.ps1",
+              "RelativeToolTip": "Generate-WiXInstaller.ps1",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAA8AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-09-07T02:44:27.418Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "InputHookManager.cs",
+              "DocumentMoniker": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Services\\InputHookManager.cs",
+              "RelativeDocumentMoniker": "Services\\InputHookManager.cs",
+              "ToolTip": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Services\\InputHookManager.cs",
+              "RelativeToolTip": "Services\\InputHookManager.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAALoAAABJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-07T01:01:17.155Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "CustomJsonSerializer.cs",
+              "DocumentMoniker": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Utilities\\CustomJsonSerializer.cs",
+              "RelativeDocumentMoniker": "Utilities\\CustomJsonSerializer.cs",
+              "ToolTip": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Utilities\\CustomJsonSerializer.cs",
+              "RelativeToolTip": "Utilities\\CustomJsonSerializer.cs",
+              "ViewState": "AgIAAAEAAAAAAAAAAAAEwBwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-04T17:55:10.759Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
               "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\josecar1\\OneDrive - Intel Corporation\\Desktop\\SystemUtilizationMonitor\\Program.cs",
+              "DocumentMoniker": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Program.cs",
               "RelativeDocumentMoniker": "Program.cs",
-              "ToolTip": "C:\\Users\\josecar1\\OneDrive - Intel Corporation\\Desktop\\SystemUtilizationMonitor\\Program.cs",
+              "ToolTip": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Program.cs",
               "RelativeToolTip": "Program.cs",
-              "ViewState": "AgIAAF4CAAAAAAAAAAAuwHQCAAARAAAAAAAAAA==",
+              "ViewState": "AgIAAEkBAAAAAAAAAAAAwFABAAAVAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-09-03T16:31:07.549Z",
-              "EditorCaption": ""
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "Orientation": 0,
-      "VerticalTabListWidth": 256,
-      "FloatingWindowState": {
-        "Id": "a72df9f0-d9b6-43e8-8fe1-bf6d6af6dedf",
-        "Display": 1,
-        "X": -5,
-        "Y": 34,
-        "Width": 1857,
-        "Height": 1123,
-        "WindowState": 2
-      },
-      "DocumentGroups": [
-        {
-          "DockedWidth": 200,
-          "SelectedChildIndex": 0,
-          "Children": [
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "DataModel.cs",
-              "DocumentMoniker": "C:\\Users\\josecar1\\OneDrive - Intel Corporation\\Desktop\\SystemUtilizationMonitor\\Models\\DataModel.cs",
-              "RelativeDocumentMoniker": "Models\\DataModel.cs",
-              "ToolTip": "C:\\Users\\josecar1\\OneDrive - Intel Corporation\\Desktop\\SystemUtilizationMonitor\\Models\\DataModel.cs",
-              "RelativeToolTip": "Models\\DataModel.cs",
-              "ViewState": "AgIAAGkAAAAAAAAAAAA0wHsAAAAGAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-03T19:36:45.079Z",
               "EditorCaption": ""
             }
           ]
