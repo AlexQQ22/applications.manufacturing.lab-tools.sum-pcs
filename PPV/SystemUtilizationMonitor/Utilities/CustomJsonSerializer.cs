@@ -27,7 +27,15 @@ namespace SystemUtilizationMonitor.Utilities
             //}
             //parts.Add("\"FileChanges\":{" + string.Join(",", fileParts.ToArray()) + "}");
 
-            parts.Add("\"FileChanges\":{\"" +  timeFrame.FileChanges + "\"}");
+            if (string.IsNullOrEmpty(timeFrame.FileChanges))
+            {
+                parts.Add("\"FileChanges\":\"\"");
+            }
+            else
+            {
+                parts.Add("\"FileChanges\":\"" + EscapeJson(timeFrame.FileChanges) + "\"");
+            }
+
             return "{" + string.Join(",", parts.ToArray()) + "}";
         }
 

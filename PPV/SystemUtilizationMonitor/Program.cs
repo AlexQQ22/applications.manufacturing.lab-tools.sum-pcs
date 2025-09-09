@@ -635,13 +635,11 @@ namespace SystemUtilizationMonitor
                 return "ERROR_GETTING_PRODUCT";
             }
         }
-
         private static string GetProductFromHDMX(string hdmxPath)
         {
             try
             {
                 string configFilePath = Path.Combine(hdmxPath, "TesterHwConfig.xml");
-
                 if (!File.Exists(configFilePath))
                 {
                     LogInfo($"TesterHwConfig.xml not found at: {configFilePath}");
@@ -649,25 +647,24 @@ namespace SystemUtilizationMonitor
                 }
 
                 LogInfo($"Reading TesterHwConfig.xml from: {configFilePath}");
-
                 string xmlContent = File.ReadAllText(configFilePath);
 
-                var tiuSerialNumberRegex = new System.Text.RegularExpressions.Regex(
-                    @"BoardName=""TIU""[^>]*SerialNumber=""([^""]+)""",
+                // Nuevo regex para buscar DUTSocketSerialNumber0
+                var dutSocketSerialRegex = new System.Text.RegularExpressions.Regex(
+                    @"<SupplementalData\s+Name=""DUTSocketSerialNumber0""\s+Value=""([^""]+)""",
                     System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
                 );
 
-                var match = tiuSerialNumberRegex.Match(xmlContent);
+                var match = dutSocketSerialRegex.Match(xmlContent);
                 if (match.Success)
                 {
-                    string serialNumber = match.Groups[1].Value.Trim();
-
-                    LogInfo($"Found TIU SerialNumber in HDMX config: {serialNumber}");
-                    return serialNumber;
+                    string dutSerialNumber = match.Groups[1].Value.Trim();
+                    LogInfo($"Found DUTSocketSerialNumber0 in HDMX config: {dutSerialNumber}");
+                    return dutSerialNumber;
                 }
                 else
                 {
-                    LogInfo("TIU SerialNumber pattern not found in TesterHwConfig.xml");
+                    LogInfo("DUTSocketSerialNumber0 pattern not found in TesterHwConfig.xml");
                     return "";
                 }
             }
@@ -677,6 +674,47 @@ namespace SystemUtilizationMonitor
                 return "";
             }
         }
+        //private static string GetProductFromHDMX(string hdmxPath)
+        //{
+        //    try
+        //    {
+        //        string configFilePath = Path.Combine(hdmxPath, "TesterHwConfig.xml");
+
+        //        if (!File.Exists(configFilePath))
+        //        {
+        //            LogInfo($"TesterHwConfig.xml not found at: {configFilePath}");
+        //            return "";
+        //        }
+
+        //        LogInfo($"Reading TesterHwConfig.xml from: {configFilePath}");
+
+        //        string xmlContent = File.ReadAllText(configFilePath);
+
+        //        var tiuSerialNumberRegex = new System.Text.RegularExpressions.Regex(
+        //            @"BoardName=""TIU""[^>]*SerialNumber=""([^""]+)""",
+        //            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
+        //        );
+
+        //        var match = tiuSerialNumberRegex.Match(xmlContent);
+        //        if (match.Success)
+        //        {
+        //            string serialNumber = match.Groups[1].Value.Trim();
+
+        //            LogInfo($"Found TIU SerialNumber in HDMX config: {serialNumber}");
+        //            return serialNumber;
+        //        }
+        //        else
+        //        {
+        //            LogInfo("TIU SerialNumber pattern not found in TesterHwConfig.xml");
+        //            return "";
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        LogError($"Error reading HDMX config: {ex.Message}");
+        //        return "";
+        //    }
+        //}
 
         private static string GetProductFromHSTMethod1()
         {
