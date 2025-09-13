@@ -5,162 +5,80 @@ using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 using System.Linq;
 using SystemUtilizationMonitor.Models;
+using System;
+using System.Management.Automation;
+using System.Management.Automation.Runspaces;
 
 public class MonitoringVMs
 {
-    private const string VM_MONITORING_BAT_SOURCE = @"C:\SUMInstall\VM_Monitoring.bat";
-    private const string PSEXEC_PATH = @"c:\SUMInstall\PsExec64.exe";
 
-    // Configuration properties - will be loaded from config file
-    private readonly string username;
-    private readonly string password;
-
-    // Constructor that accepts configuration
-    public MonitoringVMs(ConfigurationModel config)
-    {
-        // Use configuration values instead of hardcoded constants
-        username = config?.VM?.Username ?? "cc3user"; // fallback to default if config is null
-        password = config?.VM?.Password ?? "sthi";     // fallback to default if config is null
-    }
-
-    // Parameterless constructor for backward compatibility
-    public MonitoringVMs() : this(null)
-    {
-        // Uses fallback values from the main constructor
-    }
-
-    public async Task<bool> CheckVMsAsync()
-    {
-        bool vmInUse = false;
-
-        for (int i = 1; i <= 4; i++)
-        {
-            string ipvm = $"10.0.0.{i}";
-
-            // Ping la VM
-            if (await PingVMAsync(ipvm))
-            {
-                Console.WriteLine($"VM {ipvm} is reachable");
-
-                // Copiar el archivo de monitoreo si no existe
-                await CopyMonitoringFileAsync(ipvm);
-
-                // Ejecutar el script de monitoreo y capturar resultado
-                string result = await ExecuteRemoteMonitoringAsync(ipvm);
-
-                if (result == "VM_IN_USE_BY_VNC")
-                {
-                    Console.WriteLine($"VM {ipvm} is in use by VNC or hyperV");
-                    vmInUse = true;
-                    break; // Salir del loop si encontramos una VM en uso
-                }
-            }
-            else
-            {
-                Console.WriteLine($"VM {ipvm} is not reachable");
-            }
-        }
-
-
-        return vmInUse;
-    }
-
-    private async Task<bool> PingVMAsync(string ip)
+    /// <summary>
+    /// Prueba la conexión a un host específico en un puerto específico usando PowerShell Test-NetConnection
+    /// </summary>
+    /// <param name="computerName">Nombre del equipo o dirección IP a probar</param>
+    /// <param name="port">Puerto a probar</param>
+    /// <param name="timeoutSeconds">Timeout en segundos (opcional, por defecto 10)</param>
+    /// <returns>True si la conexión TCP fue exitosa, False en caso contrario</returns>
+    public static async Task<bool> TestNetConnectionAsync(string computerName, int port, int timeoutSeconds = 5)
     {
         try
         {
-            using (var ping = new Ping())
+            using (var runspace = RunspaceFactory.CreateRunspace())
             {
-                var reply = await ping.SendPingAsync(ip, 500);
-                return reply.Status == IPStatus.Success;
+                runspace.Open();
+
+                using (var powershell = PowerShell.Create())
+                {
+                    powershell.Runspace = runspace;
+
+                    // Construir el comando PowerShell
+                    string command = $"Test-NetConnection -ComputerName {computerName} -Port {port}";
+
+                    powershell.AddScript(command);
+
+                    // Ejecutar el comando de forma asíncrona con timeout
+                    var task = Task.Run(() => powershell.Invoke());
+
+                    if (await Task.WhenAny(task, Task.Delay(timeoutSeconds * 1000)) == task)
+                    {
+                        var results = task.Result;
+
+                        // Buscar el resultado TcpTestSucceeded
+                        foreach (var result in results)
+                        {
+                            var tcpTestSucceeded = result.Properties["TcpTestSucceeded"]?.Value;
+
+                            if (tcpTestSucceeded != null && tcpTestSucceeded is bool boolResult)
+                            {
+                                return boolResult;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Timeout: La operación excedió {timeoutSeconds} segundos");
+                    }
+                }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error pinging {ip}: {ex.Message}");
-            return false;
+            Console.WriteLine($"Error al ejecutar Test-NetConnection: {ex.Message}");
         }
+
+        return false;
     }
 
-    private async Task CopyMonitoringFileAsync(string ipvm)
+    /// <summary>
+    /// Versión sincrónica del método
+    /// </summary>
+    /// <param name="computerName">Nombre del equipo o dirección IP a probar</param>
+    /// <param name="port">Puerto a probar</param>
+    /// <param name="timeoutSeconds">Timeout en segundos (opcional, por defecto 10)</param>
+    /// <returns>True si la conexión TCP fue exitosa, False en caso contrario</returns>
+    public static bool TestNetConnection(string computerName, int port, int timeoutSeconds = 10)
     {
-        try
-        {
-            string destinationPath = $@"\\{ipvm}\c$\Users\{username}\Desktop\VM_monitoring.bat";
-
-            if (!File.Exists(destinationPath))
-            {
-                await Task.Run(() => File.Copy(VM_MONITORING_BAT_SOURCE, destinationPath, true));
-                Console.WriteLine($"Copied monitoring file to {ipvm}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error copying file to {ipvm}: {ex.Message}");
-        }
-    }
-
-    private async Task<string> ExecuteRemoteMonitoringAsync(string ipvm)
-    {
-        try
-        {
-            var processInfo = new ProcessStartInfo
-            {
-                FileName = PSEXEC_PATH,
-                Arguments = $@"\\{ipvm} -u {username} -p {password} -h -i -accepteula -nobanner  cmd /c ""c:\Users\{username}\Desktop\VM_monitoring.bat""",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
-
-            using (var process = new Process())
-            {
-                process.StartInfo = processInfo;
-                process.Start();
-
-                string output = await process.StandardOutput.ReadToEndAsync();
-                string error = await process.StandardError.ReadToEndAsync();
-
-                await process.WaitForExitAsync();
-
-                if (!string.IsNullOrEmpty(error))
-                {
-                    Console.WriteLine($"Error executing on {ipvm}: {error}");
-                }
-
-                // Limpiar la salida y buscar el resultado esperado
-                string cleanOutput = output.Trim();
-
-                // El script batch original busca "x", pero mencionas "VM_IN_USE_BY_VNC"
-                // Aquí puedes ajustar según lo que realmente devuelve tu VM_monitoring.bat
-                if (cleanOutput.Contains("VM_IN_USE_BY_VNC"))
-                {
-                    return "VM_IN_USE_BY_VNC";
-                }
-
-                /////////// new jose veridicacion si vm esta abierta por hyper v
-                ///var procesos = Process.GetProcessesByName("vmconnect");
-                var procesos = Process.GetProcessesByName("vmconnect");
-                if (procesos.Any())
-                {
-                    Console.WriteLine("VM_IN_USE_BY_HYPERV");
-                    return "VM_IN_USE_BY_VNC";
-                }
-                else
-                {
-                    Console.WriteLine("No hay conexión Hyper-V activa");
-                }
-
-                Console.WriteLine($"Output from {ipvm}: {cleanOutput}");
-                return cleanOutput;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error executing remote command on {ipvm}: {ex.Message}");
-            return string.Empty;
-        }
+        return TestNetConnectionAsync(computerName, port, timeoutSeconds).Result;
     }
 
 }

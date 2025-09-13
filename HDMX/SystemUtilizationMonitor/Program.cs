@@ -1,13 +1,14 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web.Services.Description;
 using System.Windows.Forms;
-using System.Text.RegularExpressions;
-using Newtonsoft.Json;
 using SystemUtilizationMonitor.Models;
 using SystemUtilizationMonitor.Services;
 using SystemUtilizationMonitor.Utilities;
@@ -436,7 +437,40 @@ namespace SystemUtilizationMonitor
                 timeFrame.KeyboardEvents = inputHook.GetKeyboardEventCount();
             }
 
-            timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
+            // Create MonitoringVMs instance with configuration
+            //MonitoringVMs monitoringVMs = new MonitoringVMs();
+
+            bool vmInUse = false;
+
+            try
+            {
+                string hostName = "localhost";
+                int port = 1190;
+
+                // Llamada sincrónica directa con timeout de 5 segundos
+                vmInUse = MonitoringVMs.TestNetConnection(hostName, port, 5);
+                LogInfo($"VM check completed successfully. VMs in use: {vmInUse}");
+            }
+            catch (Exception ex)
+            {
+                LogError($"VM monitoring failed with error: {ex.Message}, continuing with file monitoring");
+                vmInUse = false;
+            }
+
+            // Continue with the logic regardless of VM check results
+            if (vmInUse)
+            {
+                timeFrame.FileChanges = string.Empty;
+                timeFrame.FileChanges = "VMs In Use By VMC or hyperV";
+                LogInfo("VMs detected in use, skipping file monitoring");
+            }
+            else
+            {
+                timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
+                LogInfo("No VMs in use or VM check failed, proceeding with file monitoring");
+            }
+
+
             return timeFrame;
         }
 
