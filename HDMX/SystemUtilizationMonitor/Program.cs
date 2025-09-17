@@ -154,7 +154,7 @@ namespace SystemUtilizationMonitor
                     ["montior_txt_priority"] = new MonitorTxtConfig
                     {
                         FilePath = "D:\\HDMT3\\logs\\commonhdmt\\hdmtOScommon.json",
-                        NoContent = "",
+                        NoContent = "Alarm;alarm",
                         Skip = "",
                         FormatDate = "yyyy/MM/dd",
                         LastlineContent = ""
@@ -162,7 +162,7 @@ namespace SystemUtilizationMonitor
                     ["montior_txt_priority_2"] = new MonitorTxtConfig
                     {
                         FilePath = "D:\\HDMT3\\logs\\commonhdmt\\hdmtOScommon.log",
-                        NoContent = "",
+                        NoContent = "Alarm;alarm",
                         Skip = "",
                         FormatDate = "yyyy/MM/dd",
                         LastlineContent = ""
@@ -406,6 +406,7 @@ namespace SystemUtilizationMonitor
                 try
                 {
                     Thread.Sleep(config.RecordInterval);
+                    
                 }
                 catch (ThreadInterruptedException)
                 {
@@ -437,9 +438,6 @@ namespace SystemUtilizationMonitor
                 timeFrame.KeyboardEvents = inputHook.GetKeyboardEventCount();
             }
 
-            // Create MonitoringVMs instance with configuration
-            //MonitoringVMs monitoringVMs = new MonitoringVMs();
-
             bool vmInUse = false;
 
             try
@@ -448,7 +446,7 @@ namespace SystemUtilizationMonitor
                 int port = 1190;
 
                 // Llamada sincrónica directa con timeout de 5 segundos
-                vmInUse = MonitoringVMs.TestNetConnection(hostName, port, 5);
+                vmInUse = MonitoringVMs.TestNetConnection(hostName, port);
                 LogInfo($"VM check completed successfully. VMs in use: {vmInUse}");
             }
             catch (Exception ex)
@@ -461,7 +459,7 @@ namespace SystemUtilizationMonitor
             if (vmInUse)
             {
                 timeFrame.FileChanges = string.Empty;
-                timeFrame.FileChanges = "VMs In Use By VMC or hyperV";
+                timeFrame.FileChanges = "Tester In use by Redline";
                 LogInfo("VMs detected in use, skipping file monitoring");
             }
             else
