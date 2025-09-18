@@ -3,12 +3,16 @@
   "WorkspaceRootPath": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\ppv\\systemutilizationmonitor\\services\\monitoringsum.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|solutionrelative:services\\monitoringsum.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\ppv\\systemutilizationmonitor\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\ppv\\systemutilizationmonitor\\services\\monitoringsum.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|solutionrelative:services\\monitoringsum.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\ppv\\systemutilizationmonitor\\services\\monitoringvms.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|solutionrelative:services\\monitoringvms.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{F89AE5FB-5211-E7AD-F845-81D810EF9696}|SystemUtilizationMonitor.csproj|c:\\users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\ppv\\systemutilizationmonitor\\utilities\\customjsonserializer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -34,7 +38,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 8,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Bookmark",
@@ -50,19 +54,32 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
+              "Title": "MonitoringVMs.cs",
+              "DocumentMoniker": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Services\\MonitoringVMs.cs",
+              "RelativeDocumentMoniker": "Services\\MonitoringVMs.cs",
+              "ToolTip": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Services\\MonitoringVMs.cs",
+              "RelativeToolTip": "Services\\MonitoringVMs.cs",
+              "ViewState": "AgIAADUAAAAAAAAAAAAwwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-12T00:20:12.66Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
               "Title": "MonitoringSUM.cs",
               "DocumentMoniker": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Services\\MonitoringSUM.cs",
               "RelativeDocumentMoniker": "Services\\MonitoringSUM.cs",
               "ToolTip": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Services\\MonitoringSUM.cs",
               "RelativeToolTip": "Services\\MonitoringSUM.cs",
-              "ViewState": "AgIAAP0AAAAAAAAAAAAlwBcBAABTAAAAAAAAAA==",
+              "ViewState": "AgIAALwAAAAAAAAAAAAAwNsAAAAxAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-08T16:43:16.089Z"
+              "WhenOpened": "2025-09-08T16:43:16.089Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "DataModel.cs",
               "DocumentMoniker": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Models\\DataModel.cs",
               "RelativeDocumentMoniker": "Models\\DataModel.cs",
@@ -74,7 +91,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "Generate-WiXInstaller.ps1",
               "DocumentMoniker": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Generate-WiXInstaller.ps1",
               "RelativeDocumentMoniker": "Generate-WiXInstaller.ps1",
@@ -86,7 +103,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "InputHookManager.cs",
               "DocumentMoniker": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Services\\InputHookManager.cs",
               "RelativeDocumentMoniker": "Services\\InputHookManager.cs",
@@ -98,25 +115,25 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "CustomJsonSerializer.cs",
               "DocumentMoniker": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Utilities\\CustomJsonSerializer.cs",
               "RelativeDocumentMoniker": "Utilities\\CustomJsonSerializer.cs",
               "ToolTip": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Utilities\\CustomJsonSerializer.cs",
               "RelativeToolTip": "Utilities\\CustomJsonSerializer.cs",
-              "ViewState": "AgIAAAEAAAAAAAAAAAAEwBwAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAA8AAAAAAAAAAAAAAA8AAABZAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-09-04T17:55:10.759Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Program.cs",
               "RelativeDocumentMoniker": "Program.cs",
               "ToolTip": "C:\\Users\\josecar1\\source\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\Program.cs",
               "RelativeToolTip": "Program.cs",
-              "ViewState": "AgIAAEkBAAAAAAAAAAAAwFABAAAVAAAAAAAAAA==",
+              "ViewState": "AgIAAFcCAAAAAAAAAAAUwHMCAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-09-03T16:31:07.549Z",
               "EditorCaption": ""

@@ -260,6 +260,7 @@ namespace SystemUtilizationMonitor
 
             // Use the configuration value instead of hardcoded value
             config.RecordInterval = TimeSpan.FromMinutes(appConfig.Monitoring.RecordIntervalMinutes);
+            //config.RecordInterval = TimeSpan.FromSeconds(10);
         }
 
         private static void SetupCancellation()

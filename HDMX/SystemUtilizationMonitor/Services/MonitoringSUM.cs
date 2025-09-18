@@ -214,12 +214,15 @@ namespace SystemUtilizationMonitor.Services
 
                                             foreach (var word in noContent)
                                             {
-                                                if (!lineText.Contains(word))  
+                                                
+                                                if (!noContent.Any(word => lineText.Contains(word)))
                                                 {
-                                                    wasUsed = true; 
-
+                                                    wasUsed = true;
                                                 }
                                             }
+
+
+                               
                                         }
 
                                     }
