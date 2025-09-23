@@ -616,7 +616,7 @@ namespace SystemUtilizationMonitor
                 return "ERROR_GETTING_PRODUCT";
             }
         }
-        private static string GetProductFromHDMX(string hdmxPath)
+        private static string GetProductFromHDMX2(string hdmxPath)
         {
             try
             {
@@ -655,47 +655,48 @@ namespace SystemUtilizationMonitor
                 return "";
             }
         }
-        //private static string GetProductFromHDMX(string hdmxPath)
-        //{
-        //    try
-        //    {
-        //        string configFilePath = Path.Combine(hdmxPath, "TesterHwConfig.xml");
+        private static string GetProductFromHDMX(string hdmxPath)
+        {
+           try
+           {
+               string configFilePath = Path.Combine(hdmxPath, "TesterHwConfig.xml");
 
-        //        if (!File.Exists(configFilePath))
-        //        {
-        //            LogInfo($"TesterHwConfig.xml not found at: {configFilePath}");
-        //            return "";
-        //        }
+               if (!File.Exists(configFilePath))
+               {
+                   LogInfo($"TesterHwConfig.xml not found at: {configFilePath}");
+                   return "";
+               }
 
-        //        LogInfo($"Reading TesterHwConfig.xml from: {configFilePath}");
+               LogInfo($"Reading TesterHwConfig.xml from: {configFilePath}");
 
-        //        string xmlContent = File.ReadAllText(configFilePath);
+               string xmlContent = File.ReadAllText(configFilePath);
 
-        //        var tiuSerialNumberRegex = new System.Text.RegularExpressions.Regex(
-        //            @"BoardName=""TIU""[^>]*SerialNumber=""([^""]+)""",
-        //            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
-        //        );
+               var tiuSerialNumberRegex = new System.Text.RegularExpressions.Regex(
+                   @"BoardName=""TIUEEPROM1""[^>]*SerialNumber=""([^""]+)""",
+                   System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
+               );
 
-        //        var match = tiuSerialNumberRegex.Match(xmlContent);
-        //        if (match.Success)
-        //        {
-        //            string serialNumber = match.Groups[1].Value.Trim();
+               var match = tiuSerialNumberRegex.Match(xmlContent);
+               if (match.Success) // && match.in(json_config_product_dictionary)
+               {
+                   string serialNumber = match.Groups[1].Value.Trim();
 
-        //            LogInfo($"Found TIU SerialNumber in HDMX config: {serialNumber}");
-        //            return serialNumber;
-        //        }
-        //        else
-        //        {
-        //            LogInfo("TIU SerialNumber pattern not found in TesterHwConfig.xml");
-        //            return "";
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        LogError($"Error reading HDMX config: {ex.Message}");
-        //        return "";
-        //    }
-        //}
+                   LogInfo($"Found TIU SerialNumber in HDMX config: {serialNumber}");
+                   return serialNumber;
+               }
+               else
+               {
+                  // try GetProductFromHDMX2, if also fails then:
+                   LogInfo("TIU SerialNumber pattern not found in TesterHwConfig.xml");
+                   return "";
+               }
+           }
+           catch (Exception ex)
+           {
+               LogError($"Error reading HDMX config: {ex.Message}");
+               return "";
+           }
+        }
 
         private static string GetProductFromHSTMethod1()
         {
