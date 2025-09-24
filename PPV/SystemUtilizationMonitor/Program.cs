@@ -259,11 +259,13 @@ namespace SystemUtilizationMonitor
                             {
                                 string content = File.ReadAllText(remoteActivityFile).Trim();
 
-                                if (content.Equals("YES", StringComparison.OrdinalIgnoreCase))
+                                // Check if content contains "yes" anywhere (case-insensitive)
+                                if (content.IndexOf("yes", StringComparison.OrdinalIgnoreCase) >= 0)
                                 {
                                     LogInfo($"User activity detected on VM {ipvm}");
                                     // Clean the activity file
                                     File.WriteAllText(remoteActivityFile, "");
+                                    File.WriteAllText(KILLING_PENDINGS_FILE, "");
                                     return true;
                                 }
                             }
