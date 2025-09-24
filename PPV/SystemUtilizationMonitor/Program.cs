@@ -82,20 +82,39 @@ namespace SystemUtilizationMonitor
                 // 1. Check if vmconnect instances exist
                 bool vmConnectExists = CheckVmConnectProcesses();
 
-                if (vmConnectExists)
+                // Only update lastVmConnectedDetection when we FIRST detect VMConnect
+                // or when VMConnect wasn't detected in the previous cycle but is now detected
+                if (vmConnectExists && lastVmConnectedDetection == DateTime.MinValue)
                 {
                     lastVmConnectedDetection = DateTime.UtcNow;
-                    LogInfo("VMConnect processes detected, updating last detection time");
+                    LogInfo("VMConnect processes detected for the first time, starting timeout timer");
+                }
+                else if (vmConnectExists)
+                {
+                    LogInfo("VMConnect processes still running");
+                }
+                else
+                {
+                    // If VMConnect is no longer running, reset the detection time
+                    if (lastVmConnectedDetection != DateTime.MinValue)
+                    {
+                        LogInfo("VMConnect processes no longer detected, resetting timer");
+                        lastVmConnectedDetection = DateTime.MinValue;
+                    }
                 }
 
                 // 2. Process any pending kills first
                 ProcessPendingKills();
+                LogInfo("Killing Pendings Processed");
 
-                // 3. Check if 40 minutes have passed since last VM connection AND vmconnect still exists
+                // 3. Check if VM_TIMEOUT_MINUTES have passed since FIRST VM connection detection
+                // AND vmconnect still exists
                 if (vmConnectExists && ShouldScheduleVmClose())
                 {
                     ScheduleVmCloseAndKill();
                 }
+
+                LogInfo("VMClosure checked");
 
                 var endTime = startTime.Add(config.RecordInterval);
                 ResetCounters();
@@ -110,6 +129,7 @@ namespace SystemUtilizationMonitor
                 }
 
                 if (shouldStop) break;
+                LogInfo("5 minutes finished");
 
                 var timeFrame = CollectUtilizationData(startTime, endTime);
                 lastEndTime = endTime;
@@ -134,121 +154,13 @@ namespace SystemUtilizationMonitor
         private static bool ShouldScheduleVmClose()
         {
             if (lastVmConnectedDetection == DateTime.MinValue)
+            {
+                LogInfo("lastVmConnectedDetection is minvalue");
                 return false;
-
+            }
             var timeSinceLastDetection = DateTime.UtcNow - lastVmConnectedDetection;
+            LogInfo($"timeSinceLastDetection >= VM_TIMEOUT_MINUTES: {timeSinceLastDetection.TotalMinutes >= VM_TIMEOUT_MINUTES}, {timeSinceLastDetection}, {VM_TIMEOUT_MINUTES}");
             return timeSinceLastDetection.TotalMinutes >= VM_TIMEOUT_MINUTES;
-        }
-
-        private static void ScheduleVmCloseAndKill()
-        {
-            try
-            {
-                LogInfo("Scheduling VM close operations and kill after 40 minutes of VM connection");
-
-                // Calculate kill time (current UTC + 5 minutes)
-                DateTime killTime = DateTime.UtcNow.AddMinutes(KILL_DELAY_MINUTES);
-                string killTimeString = killTime.ToString("yy:MM:dd:HH:mm:ss");
-
-                // Ensure directory exists
-                string directory = Path.GetDirectoryName(KILLING_PENDINGS_FILE);
-                if (!Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                // Add the kill entry to the pendings file
-                string killEntry = $"Killing vmconnect at {killTimeString}";
-                File.AppendAllText(KILLING_PENDINGS_FILE, killEntry + Environment.NewLine);
-                LogInfo($"Added kill entry: {killEntry}");
-
-                // Execute VM close operations on available VMs
-                for (int i = 1; i <= 4; i++)
-                {
-                    string ipvm = $"10.0.0.{i}";
-                    if (PingHost(ipvm))
-                    {
-                        LogInfo($"VM {ipvm} is reachable, executing close script");
-                        ExecuteVmCloseScript(ipvm);
-                    }
-                    else
-                    {
-                        LogInfo($"VM {ipvm} is not reachable, skipping");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError($"Error scheduling VM close and kill: {ex.Message}");
-            }
-        }
-
-        private static void ExecuteVmCloseScript(string ipAddress)
-        {
-            try
-            {
-                // Check if VM_Close_PopUP.bat exists on the VM desktop, if not copy it
-                string remoteBatPath = $@"\\{ipAddress}\c$\Users\cc3user\Desktop\VM_Close_PopUP.bat";
-                string localBatPath = @"C:\SUMInstall\VM_Close_PopUP.bat";
-
-                try
-                {
-                    if (!File.Exists(remoteBatPath))
-                    {
-                        if (File.Exists(localBatPath))
-                        {
-                            File.Copy(localBatPath, remoteBatPath, true);
-                            LogInfo($"Copied VM_Close_PopUP.bat to {ipAddress} desktop");
-                        }
-                        else
-                        {
-                            LogError($"Source bat file not found at {localBatPath}");
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        LogInfo($"VM_Close_PopUP.bat already exists on {ipAddress} desktop");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LogError($"Failed to copy VM_Close_PopUP.bat to {ipAddress}: {ex.Message}");
-                    return;
-                }
-
-                ProcessStartInfo startInfo = new ProcessStartInfo
-                {
-                    FileName = @"c:\SUMInstall\PsExec64.exe",
-                    Arguments = $@"\\{ipAddress} -u cc3user -p sthi -h -i 1 -accepteula -nobanner cmd /c ""c:\Users\cc3user\Desktop\VM_Close_PopUP.bat""",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                };
-
-                LogInfo($"Executing VM close script on {ipAddress}");
-
-                using (Process process = Process.Start(startInfo))
-                {
-                    process.WaitForExit(1000); // 1 second timeout
-
-                    string output = process.StandardOutput.ReadToEnd();
-                    string errors = process.StandardError.ReadToEnd();
-
-                    LogInfo($"VM script on {ipAddress} - Exit code: {process.ExitCode}");
-
-                    if (!string.IsNullOrEmpty(output))
-                        LogInfo($"Output: {output}");
-
-                    if (!string.IsNullOrEmpty(errors))
-                        LogError($"Errors: {errors}");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError($"Error executing VM close script on {ipAddress}: {ex.Message}");
-            }
         }
 
         private static void ProcessPendingKills()
@@ -454,6 +366,185 @@ namespace SystemUtilizationMonitor
             }
         }
 
+        private static void ScheduleVmCloseAndKill()
+        {
+            try
+            {
+                LogInfo("Scheduling VM close operations and kill after VM connection timeout");
+
+                // Calculate kill time (current UTC + 5 minutes)
+                DateTime killTime = DateTime.UtcNow.AddMinutes(KILL_DELAY_MINUTES);
+                string killTimeString = killTime.ToString("yy:MM:dd:HH:mm:ss");
+
+                // Ensure directory exists
+                string directory = Path.GetDirectoryName(KILLING_PENDINGS_FILE);
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                // Add the kill entry to the pendings file
+                string killEntry = $"Killing vmconnect at {killTimeString}";
+                File.AppendAllText(KILLING_PENDINGS_FILE, killEntry + Environment.NewLine);
+                LogInfo($"Added kill entry: {killEntry}");
+
+                // Execute VM close operations on available VMs with timeout
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        for (int i = 1; i <= 4; i++)
+                        {
+                            string ipvm = $"10.0.0.{i}";
+
+                            // Use a timeout for the ping operation
+                            if (PingHostWithTimeout(ipvm, 1000))
+                            {
+                                LogInfo($"VM {ipvm} is reachable, executing close script");
+                                ExecuteVmCloseScriptAsync(ipvm);
+                            }
+                            else
+                            {
+                                LogInfo($"VM {ipvm} is not reachable, skipping");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError($"Error in VM close task: {ex.Message}");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error scheduling VM close and kill: {ex.Message}");
+            }
+        }
+
+        private static bool PingHostWithTimeout(string hostname, int timeoutMs)
+        {
+            try
+            {
+                using (Ping ping = new Ping())
+                {
+                    PingReply reply = ping.Send(hostname, timeoutMs);
+                    return reply.Status == IPStatus.Success;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error pinging {hostname}: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static void ExecuteVmCloseScriptAsync(string ipAddress)
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    // Check if VM_Close_PopUP.bat exists on the VM desktop, with timeout
+                    string remoteBatPath = $@"\\{ipAddress}\c$\Users\cc3user\Desktop\VM_Close_PopUP.bat";
+                    string localBatPath = @"C:\SUMInstall\VM_Close_PopUP.bat";
+
+                    // Use a timeout for file operations
+                    var copyTask = Task.Run(() =>
+                    {
+                        try
+                        {
+                            if (!File.Exists(remoteBatPath))
+                            {
+                                if (File.Exists(localBatPath))
+                                {
+                                    File.Copy(localBatPath, remoteBatPath, true);
+                                    LogInfo($"Copied VM_Close_PopUP.bat to {ipAddress} desktop");
+                                    return true;
+                                }
+                                else
+                                {
+                                    LogError($"Source bat file not found at {localBatPath}");
+                                    return false;
+                                }
+                            }
+                            else
+                            {
+                                LogInfo($"VM_Close_PopUP.bat already exists on {ipAddress} desktop");
+                                return true;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogError($"Failed to copy VM_Close_PopUP.bat to {ipAddress}: {ex.Message}");
+                            return false;
+                        }
+                    });
+
+                    // Wait for copy operation with 5-second timeout
+                    if (!copyTask.Wait(5000))
+                    {
+                        LogError($"File copy to {ipAddress} timed out after 5 seconds");
+                        return;
+                    }
+
+                    if (!copyTask.Result)
+                    {
+                        LogError($"File copy to {ipAddress} failed");
+                        return;
+                    }
+
+                    // Execute the script with proper timeout handling
+                    ProcessStartInfo startInfo = new ProcessStartInfo
+                    {
+                        FileName = @"c:\SUMInstall\PsExec64.exe",
+                        Arguments = $@"\\{ipAddress} -u cc3user -p sthi -h -i 1 -accepteula -nobanner cmd /c ""c:\Users\cc3user\Desktop\VM_Close_PopUP.bat""",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true
+                    };
+
+                    LogInfo($"Executing VM close script on {ipAddress}");
+
+                    using (Process process = Process.Start(startInfo))
+                    {
+                        // Set a more reasonable timeout for the process
+                        bool finished = process.WaitForExit(10000); // 10 seconds
+
+                        if (finished)
+                        {
+                            string output = process.StandardOutput.ReadToEnd();
+                            string errors = process.StandardError.ReadToEnd();
+
+                            LogInfo($"VM script on {ipAddress} - Exit code: {process.ExitCode}");
+
+                            if (!string.IsNullOrEmpty(output))
+                                LogInfo($"Output: {output}");
+
+                            if (!string.IsNullOrEmpty(errors))
+                                LogError($"Errors: {errors}");
+                        }
+                        else
+                        {
+                            LogError($"VM script on {ipAddress} timed out, killing process");
+                            try
+                            {
+                                process.Kill();
+                            }
+                            catch (Exception killEx)
+                            {
+                                LogError($"Failed to kill timed out process: {killEx.Message}");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError($"Error executing VM close script on {ipAddress}: {ex.Message}");
+                }
+            });
+        }
+
         #region Utility Methods
 
         private static void HideConsoleWindow()
@@ -578,6 +669,46 @@ namespace SystemUtilizationMonitor
             {
                 timeFrame.MouseEvents = inputHook.GetMouseEventCount();
                 timeFrame.KeyboardEvents = inputHook.GetKeyboardEventCount();
+            }
+
+            // Create MonitoringVMs instance with configuration
+            MonitoringVMs monitoringVMs = new MonitoringVMs(appConfig);
+            bool vmInUse = false;
+
+            try
+            {
+                // Set a timeout for the VM check to prevent hanging
+                var vmCheckTask = Task.Run(() => monitoringVMs.CheckVMsAsync());
+
+                // Wait for the task to complete with a timeout (e.g., 5 seconds)
+                if (vmCheckTask.Wait(TimeSpan.FromSeconds(5)))
+                {
+                    vmInUse = vmCheckTask.Result;
+                    LogInfo($"INFO: VM check completed successfully. VMs in use: {vmInUse}");
+                }
+                else
+                {
+                    LogInfo("ERROR: VM check timed out after 5 seconds, continuing with file monitoring");
+                    vmInUse = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"ERROR: VM monitoring failed with error: {ex.Message}, continuing with file monitoring");
+                vmInUse = false;
+            }
+
+            // Continue with the logic regardless of VM check results
+            if (vmInUse)
+            {
+                timeFrame.FileChanges = string.Empty;
+                timeFrame.FileChanges = "VMs In Use By VMC or hyperV";
+                LogInfo("INFO: VMs detected in use, skipping file monitoring");
+            }
+            else
+            {
+                timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
+                LogInfo("INFO: No VMs in use or VM check failed, proceeding with file monitoring");
             }
 
             return timeFrame;
