@@ -29,8 +29,8 @@ namespace SystemUtilizationMonitor
 
         // Constants for VM management
         private const string KILLING_PENDINGS_FILE = @"C:\SUMInstall\KillingPendings.txt";
-        private const int VM_TIMEOUT_MINUTES = 40;
-        private const int KILL_DELAY_MINUTES = 5;
+        private const int VM_TIMEOUT_MINUTES = 2;
+        private const int KILL_DELAY_MINUTES = 2;
 
         [STAThread]
         public static void Main(string[] args)
@@ -329,6 +329,7 @@ namespace SystemUtilizationMonitor
                             process.Kill();
                             process.WaitForExit(5000);
                             LogInfo($"Successfully killed vmconnect process with PID: {process.Id}");
+                            File.WriteAllText(KILLING_PENDINGS_FILE, "");
                         }
                         catch (Exception ex)
                         {
