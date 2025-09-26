@@ -17,6 +17,7 @@ namespace SystemUtilizationMonitor
 {
     public class Program
     {
+        #region Variables Privadas
         private static MonitorConfiguration config;
         private static bool shouldStop = false;
         private static string outputDirectory;
@@ -28,18 +29,19 @@ namespace SystemUtilizationMonitor
         private static DateTime lastEndTime = DateTime.UtcNow;
         private static DateTime lastVmConnectedDetection = DateTime.MinValue;
 
-        // Constants for VM management
-        private const string KILLING_PENDINGS_FILE = @"C:\SUMInstall\KillingPendings.txt";
-        private const int VM_TIMEOUT_MINUTES = 2;
-        private const int KILL_DELAY_MINUTES = 1;
+        // Instancia de la clase de monitoreo de VMs
+        private static MonitoringVMs vmMonitor;
+        #endregion
 
         [STAThread]
         public static void Main(string[] args)
         {
             try
             {
+                // Cargar configuración de la aplicación
                 LoadConfiguration();
 
+                // Ocultar ventana de consola si no está en modo debug
                 if (!appConfig.SumPOR.Debug)
                     HideConsoleWindow();
                 else
@@ -48,18 +50,24 @@ namespace SystemUtilizationMonitor
                     Console.WriteLine("Press Ctrl+C to stop...");
                 }
 
+                // Configurar directorios y archivos de salida
                 SetupOutputDirectory();
                 InitializeForCurrentDay();
                 SetupMonitoringConfiguration();
                 SetupCancellation();
                 InitializeInputHooks();
+
+                // Inicializar monitor de VMs con logging
+                InitializeVmMonitor();
+
                 StartFileCleanupTask();
 
+                // Iniciar bucle principal de monitoreo
                 MonitoringLoop();
             }
             catch (Exception ex)
             {
-                LogError("Main execution error: " + ex.Message);
+                LogError("Error en ejecución principal: " + ex.Message);
             }
             finally
             {
@@ -67,6 +75,25 @@ namespace SystemUtilizationMonitor
             }
         }
 
+        /// <summary>
+        /// Inicializa el monitor de VMs con métodos de logging
+        /// </summary>
+        private static void InitializeVmMonitor()
+        {
+            try
+            {
+                vmMonitor = new MonitoringVMs(appConfig, LogInfo, LogError);
+                LogInfo("Monitor de VMs inicializado correctamente");
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error inicializando monitor de VMs: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Bucle principal de monitoreo del sistema
+        /// </summary>
         private static void MonitoringLoop()
         {
             while (!shouldStop)
@@ -74,50 +101,32 @@ namespace SystemUtilizationMonitor
                 var startTime = lastEndTime;
                 logInfo = string.Empty;
 
+                // Verificar si cambió el día para crear nuevo archivo de salida
                 if (DateTime.UtcNow.Date != currentDay)
                 {
                     InitializeForCurrentDay();
-                    LogInfo($"Switched to new daily file: {currentOutputFile}");
+                    LogInfo($"Cambiado a nuevo archivo diario: {currentOutputFile}");
                 }
 
-                // 1. Check if vmconnect instances exist
+                // 1. Verificar si existen instancias de vmconnect
                 bool vmConnectExists = CheckVmConnectProcesses();
 
-                // Only update lastVmConnectedDetection when we FIRST detect VMConnect
-                // or when VMConnect wasn't detected in the previous cycle but is now detected
-                if (vmConnectExists && lastVmConnectedDetection == DateTime.MinValue)
-                {
-                    lastVmConnectedDetection = DateTime.UtcNow;
-                    LogInfo("VMConnect processes detected for the first time, starting timeout timer");
-                }
-                else if (vmConnectExists)
-                {
-                    LogInfo("VMConnect processes still running");
-                }
-                else
-                {
-                    // If VMConnect is no longer running, reset the detection time
-                    if (lastVmConnectedDetection != DateTime.MinValue)
-                    {
-                        LogInfo("VMConnect processes no longer detected, resetting timer");
-                        lastVmConnectedDetection = DateTime.MinValue;
-                       // File.Delete(KILLING_PENDINGS_FILE); //esto seria cicliclo osea cada 5min se borraria? igual la linea de arriba?
-                    }
-                }
+                // Actualizar tiempo de última detección de VM conectada
+                UpdateVmConnectionDetectionTime(vmConnectExists);
 
-                // 2. Process any pending kills first
-                ProcessPendingKills();
-                LogInfo("Killing Pendings Processed");
+                // 2. Procesar cierres pendientes primero
+                ProcessPendingVmKills();
 
-                // 3. Check if VM_TIMEOUT_MINUTES have passed since FIRST VM connection detection
-                // AND vmconnect still exists
+                // 3. Verificar si han pasado los minutos de timeout desde la PRIMERA detección de conexión VM
+                // Y vmconnect aún existe
                 if (vmConnectExists && ShouldScheduleVmClose())
                 {
                     ScheduleVmCloseAndKill();
                 }
 
-                LogInfo("VMClosure checked");
+                LogInfo("Verificación de cierre de VM completada");
 
+                // Preparar para siguiente ciclo
                 var endTime = startTime.Add(config.RecordInterval);
                 ResetCounters();
 
@@ -131,557 +140,243 @@ namespace SystemUtilizationMonitor
                 }
 
                 if (shouldStop) break;
-                LogInfo("5 minutes finished");
+                LogInfo("Ciclo de 5 minutos completado");
 
+                // Recopilar datos de utilización del sistema
                 var timeFrame = CollectUtilizationData(startTime, endTime);
                 lastEndTime = endTime;
                 WriteToFile(currentOutputFile, timeFrame);
             }
         }
 
+        #region Métodos de Gestión de VMs
+
+        /// <summary>
+        /// Verifica si existen procesos vmconnect usando la clase MonitoringVMs
+        /// </summary>
+        /// <returns>True si hay procesos vmconnect activos</returns>
         private static bool CheckVmConnectProcesses()
         {
-            MonitoringVMs monitoringVMs = new MonitoringVMs(appConfig);
             try
             {
-                var vmCheckTask = Task.Run(() => monitoringVMs.CheckVMsAsync());
-                var vmCheck = vmCheckTask.GetAwaiter().GetResult();  // <-- espera el resultado
-                var hasHyperV = Process.GetProcessesByName("vmconnect").Any();
-
-                if (vmCheck)
+                if (vmMonitor == null)
                 {
+                    LogError("Monitor de VMs no inicializado");
+                    return false;
+                }
+
+                // Verificar VMs remotas de forma asíncrona
+                var vmCheckTask = Task.Run(() => vmMonitor.CheckVMsAsync());
+                var vmCheck = vmCheckTask.GetAwaiter().GetResult();
+
+                // Verificar procesos locales de Hyper-V
+                var hasLocalHyperV = vmMonitor.CheckLocalVmConnectProcesses();
+
+                // Retornar true si cualquiera de las verificaciones es positiva
+                if (vmCheck || hasLocalHyperV)
+                {
+                    LogInfo($"VMs detectadas - Remotas: {vmCheck}, Locales: {hasLocalHyperV}");
                     return true;
                 }
 
-                if(hasHyperV)
-                {
-                    return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError($"Error checking processes: {ex.Message}");
-                return false;
-            }
-
-            return false;
-        }
-
-
-
-        private static bool ShouldScheduleVmClose()
-        {
-            if (lastVmConnectedDetection == DateTime.MinValue)
-            {
-                LogInfo("lastVmConnectedDetection is minvalue");
-                return false;
-            }
-            var timeSinceLastDetection = DateTime.UtcNow - lastVmConnectedDetection;
-            LogInfo($"timeSinceLastDetection >= VM_TIMEOUT_MINUTES: {timeSinceLastDetection.TotalMinutes >= VM_TIMEOUT_MINUTES}, {timeSinceLastDetection}, {VM_TIMEOUT_MINUTES}");
-            return timeSinceLastDetection.TotalMinutes >= VM_TIMEOUT_MINUTES;
-        }
-
-        private static void ProcessPendingKills()
-        {
-            try
-            {
-                if (!File.Exists(KILLING_PENDINGS_FILE))
-                    return;
-
-                List<string> remainingLines = new List<string>();
-                string[] lines = File.ReadAllLines(KILLING_PENDINGS_FILE);
-                bool killExecuted = false;
-                DateTime currentUtc = DateTime.UtcNow;
-
-                foreach (string line in lines)
-                {
-                    if (string.IsNullOrWhiteSpace(line))
-                        continue;
-
-                    var match = Regex.Match(line, @"Killing vmconnect at (\d{2}:\d{2}:\d{2}:\d{2}:\d{2}:\d{2})");
-                    if (match.Success)
-                    {
-                        string timeString = match.Groups[1].Value;
-
-                        if (TryParseKillTime(timeString, out DateTime killTime))
-                        {
-                            if (currentUtc >= killTime)
-                            {
-                                LogInfo($"Processing overdue kill from: {line}");
-
-                                // Check for user activity across all VMs
-                                if (!CheckVMUserActivity())
-                                {
-                                    KillVmConnectProcesses();
-                                    killExecuted = true;
-                                    File.Delete(KILLING_PENDINGS_FILE); /// tambien lo agregue
-                                    LogInfo("VM kill executed - no user activity detected");
-                                }
-                                else
-                                {
-                                    LogInfo("VM kill skipped - user activity detected");
-                                    remainingLines.Add(line);
-                                }
-                            }
-                            else
-                            {
-                                remainingLines.Add(line);
-                            }
-                        }
-                        else
-                        {
-                            LogError($"Could not parse kill time from line: {line}");
-                            remainingLines.Add(line);
-                        }
-                    }
-                    else
-                    {
-                        remainingLines.Add(line);
-                    }
-                }
-
-                // Update the pendings file
-                if (killExecuted || remainingLines.Count != lines.Length)
-                {
-                    if (remainingLines.Count > 0)
-                    {
-                        File.WriteAllLines(KILLING_PENDINGS_FILE, remainingLines);
-                    }
-                    else
-                    {
-                        File.Delete(KILLING_PENDINGS_FILE);
-                        LogInfo("Deleted empty pendings file");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError($"Error processing pending kills: {ex.Message}");
-            }
-        }
-
-        private static bool CheckVMUserActivity()   ///porque dice alex?
-        {
-            try
-            {
-                for (int i = 1; i <= 4; i++)
-                {
-                    string ipvm = $"10.0.0.{i}";
-
-                    if (PingHost(ipvm))
-                    {
-                        string remoteActivityFile = $@"\\{ipvm}\c$\Temp\user_has_activity.txt";
-
-                        try
-                        {
-                            if (File.Exists(remoteActivityFile))
-                            {
-                                string content = File.ReadAllText(remoteActivityFile).Trim();
-
-                                // Check if content contains "yes" anywhere (case-insensitive)
-                                if (content.IndexOf("yes", StringComparison.OrdinalIgnoreCase) >= 0)
-                                {
-                                    
-                                    LogInfo($"User activity detected on VM {ipvm}");
-                                    // Clean the activity file
-                                    File.WriteAllText(remoteActivityFile, "");
-                                    File.WriteAllText(KILLING_PENDINGS_FILE, "");  /// no lo esta haciendo
-                                    LogInfo($"deleting");
-                                    //File.Delete(KILLING_PENDINGS_FILE);   // se lo agregue
-                                    lastVmConnectedDetection = DateTime.MinValue;
-                                    LogInfo($"Daleted");
-                                    return true;
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            LogError($"Error checking user activity on VM {ipvm}: {ex.Message}");
-                        }
-                    }
-                }
-
                 return false;
             }
             catch (Exception ex)
             {
-                LogError($"Error checking VM user activity: {ex.Message}");
+                LogError($"Error verificando procesos vmconnect: {ex.Message}");
                 return false;
             }
         }
 
-        private static bool TryParseKillTime(string timeString, out DateTime killTime)
+        /// <summary>
+        /// Actualiza el tiempo de detección de conexión VM
+        /// </summary>
+        /// <param name="vmConnectExists">Si existen conexiones VM actualmente</param>
+        private static void UpdateVmConnectionDetectionTime(bool vmConnectExists)
         {
-            killTime = DateTime.MinValue;
-
-            try
+            // Solo actualizar lastVmConnectedDetection cuando detectamos VMConnect por PRIMERA vez
+            // o cuando VMConnect no se detectó en el ciclo anterior pero ahora sí se detecta
+            if (vmConnectExists && lastVmConnectedDetection == DateTime.MinValue)
             {
-                string[] parts = timeString.Split(':');
-                if (parts.Length != 6) return false;
-
-                int year = 2000 + int.Parse(parts[0]);
-                int month = int.Parse(parts[1]);
-                int day = int.Parse(parts[2]);
-                int hour = int.Parse(parts[3]);
-                int minute = int.Parse(parts[4]);
-                int second = int.Parse(parts[5]);
-
-                killTime = new DateTime(year, month, day, hour, minute, second, DateTimeKind.Utc);
-                return true;
+                lastVmConnectedDetection = DateTime.UtcNow;
+                LogInfo("Procesos VMConnect detectados por primera vez, iniciando temporizador de timeout");
             }
-            catch
+            else if (vmConnectExists)
             {
-                return false;
+                LogInfo("Procesos VMConnect aún en ejecución");
             }
-        }
-
-        private static void KillVmConnectProcesses()
-        {
-            try
+            else
             {
-                //File.Delete(KILLING_PENDINGS_FILE);//////////////////////
-                Process[] vmConnectProcesses = Process.GetProcessesByName("vmconnect");
-                closeVNCIntoVM();
-                if (vmConnectProcesses.Length > 0)
+                // Si VMConnect ya no está en ejecución, resetear el tiempo de detección
+                if (lastVmConnectedDetection != DateTime.MinValue)
                 {
-                    LogInfo($"Found {vmConnectProcesses.Length} vmconnect process(es) to terminate");
+                    LogInfo("Procesos VMConnect ya no detectados, reseteando temporizador");
+                    lastVmConnectedDetection = DateTime.MinValue;
+                }
+            }
+        }
 
-                    foreach (Process process in vmConnectProcesses)
-                    {
-                        try
-                        {
-                            LogInfo($"Killing vmconnect process with PID: {process.Id}");
-                            process.Kill();
-                            LogInfo($"Successfully killed vmconnect process with PID: {process.Id}");
-                            File.WriteAllText(KILLING_PENDINGS_FILE, "");
-                        }
-                        catch (Exception ex)
-                        {
-                            LogError($"Failed to kill vmconnect process with PID: {process.Id}. Error: {ex.Message}");
-                        }
-                        finally
-                        {
-                            process.Dispose();
-                        }
-                    }
+        /// <summary>
+        /// Procesa cualquier cierre de VM pendiente usando la clase MonitoringVMs
+        /// </summary>
+        private static void ProcessPendingVmKills()
+        {
+            try
+            {
+                if (vmMonitor != null)
+                {
+                    // Ejecutar de forma síncrona para mantener el flujo del bucle principal
+                    var task = Task.Run(() => vmMonitor.ProcessPendingKillsAsync());
+                    task.GetAwaiter().GetResult();
+                    LogInfo("Cierres pendientes procesados");
                 }
                 else
                 {
-                    LogInfo("No vmconnect processes found to terminate");
+                    LogError("Monitor de VMs no disponible para procesar cierres pendientes");
                 }
             }
             catch (Exception ex)
             {
-                LogError($"Error while searching for vmconnect processes: {ex.Message}");
+                LogError($"Error procesando cierres pendientes: {ex.Message}");
             }
         }
 
-        private static bool PingHost(string hostname)
+        /// <summary>
+        /// Verifica si debe programarse el cierre de VMs
+        /// </summary>
+        /// <returns>True si debe programarse el cierre</returns>
+        private static bool ShouldScheduleVmClose()
         {
-            try
+            if (vmMonitor == null)
             {
-                using (Ping ping = new Ping())
-                {
-                    PingReply reply = ping.Send(hostname, 500);
-                    return reply.Status == IPStatus.Success;
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError($"Error pinging {hostname}: {ex.Message}");
+                LogError("Monitor de VMs no disponible para verificar timeout");
                 return false;
             }
+
+            return vmMonitor.ShouldScheduleVmClose(lastVmConnectedDetection);
         }
 
+        /// <summary>
+        /// Programa el cierre y terminación de VMs usando la clase MonitoringVMs
+        /// </summary>
         private static void ScheduleVmCloseAndKill()
         {
             try
             {
-                LogInfo("Scheduling VM close operations and kill after VM connection timeout");
-
-                // Calculate kill time (current UTC + 5 minutes)
-                DateTime killTime = DateTime.UtcNow.AddMinutes(KILL_DELAY_MINUTES);
-                string killTimeString = killTime.ToString("yy:MM:dd:HH:mm:ss");
-
-                // Ensure directory exists
-                string directory = Path.GetDirectoryName(KILLING_PENDINGS_FILE);
-                if (!Directory.Exists(directory))
+                if (vmMonitor != null)
                 {
-                    Directory.CreateDirectory(directory);
-                }
-
-                // Add the kill entry to the pendings file
-                string killEntry = $"Killing vmconnect at {killTimeString}";
-                File.AppendAllText(KILLING_PENDINGS_FILE, killEntry + Environment.NewLine);
-                LogInfo($"Added kill entry: {killEntry}");
-
-                // Execute VM close operations on available VMs with timeout
-                Task.Run(() =>
-                {
-                    try
+                    // Ejecutar de forma asíncrona para no bloquear el hilo principal
+                    Task.Run(async () =>
                     {
-                        for (int i = 1; i <= 4; i++)
+                        try
                         {
-                            string ipvm = $"10.0.0.{i}";
-
-                            // Use a timeout for the ping operation
-                            if (PingHostWithTimeout(ipvm, 1000))
-                            {
-                                LogInfo($"VM {ipvm} is reachable, executing close script");
-                                ExecuteVmCloseScriptAsync(ipvm);
-                            }
-                            else
-                            {
-                                LogInfo($"VM {ipvm} is not reachable, skipping");
-                            }
+                            await vmMonitor.ScheduleVmCloseAndKillAsync();
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        LogError($"Error in VM close task: {ex.Message}");
-                    }
-                });
+                        catch (Exception ex)
+                        {
+                            LogError($"Error en programación asíncrona de cierre de VM: {ex.Message}");
+                        }
+                    });
+                }
+                else
+                {
+                    LogError("Monitor de VMs no disponible para programar cierre");
+                }
             }
             catch (Exception ex)
             {
-                LogError($"Error scheduling VM close and kill: {ex.Message}");
+                LogError($"Error programando cierre de VM: {ex.Message}");
             }
         }
 
-        private static bool PingHostWithTimeout(string hostname, int timeoutMs)
+        #endregion
+
+        #region Métodos de Recopilación de Datos
+
+        /// <summary>
+        /// Recopila datos de utilización del sistema para el período especificado
+        /// </summary>
+        /// <param name="startTime">Tiempo de inicio del período</param>
+        /// <param name="endTime">Tiempo de fin del período</param>
+        /// <returns>Objeto UtilizationTimeFrame con los datos recopilados</returns>
+        private static UtilizationTimeFrame CollectUtilizationData(DateTime startTime, DateTime endTime)
         {
+            var timeFrame = new UtilizationTimeFrame
+            {
+                StartTime = startTime,
+                EndTime = endTime,
+                MachineName = Environment.MachineName
+            };
+
+            // Recopilar eventos de entrada (mouse y teclado)
+            if (inputHook != null)
+            {
+                timeFrame.MouseEvents = inputHook.GetMouseEventCount();
+                timeFrame.KeyboardEvents = inputHook.GetKeyboardEventCount();
+            }
+
+            // Verificar uso de VMs
+            bool vmInUse = CheckVmsInUse();
+
+            // Decidir si monitorear archivos basado en el uso de VMs
+            if (vmInUse)
+            {
+                timeFrame.FileChanges = "VMs In Use By VMC or hyperV";
+                LogInfo("INFO: VMs detectadas en uso, omitiendo monitoreo de archivos");
+            }
+            else
+            {
+                timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
+                LogInfo("INFO: No hay VMs en uso o verificación de VM falló, procediendo con monitoreo de archivos");
+            }
+
+            return timeFrame;
+        }
+
+        /// <summary>
+        /// Verifica si las VMs están en uso con timeout para evitar bloqueos
+        /// </summary>
+        /// <returns>True si las VMs están en uso</returns>
+        private static bool CheckVmsInUse()
+        {
+            if (vmMonitor == null)
+            {
+                LogError("Monitor de VMs no disponible para verificación de uso");
+                return false;
+            }
+
             try
             {
-                using (Ping ping = new Ping())
+                // Establecer timeout para la verificación de VM para prevenir colgados
+                var vmCheckTask = Task.Run(() => vmMonitor.CheckVMsAsync());
+
+                // Esperar a que la tarea se complete con timeout (ej. 5 segundos)
+                if (vmCheckTask.Wait(TimeSpan.FromSeconds(5)))
                 {
-                    PingReply reply = ping.Send(hostname, timeoutMs);
-                    return reply.Status == IPStatus.Success;
+                    bool vmInUse = vmCheckTask.Result;
+                    LogInfo($"INFO: Verificación de VM completada exitosamente. VMs en uso: {vmInUse}");
+                    return vmInUse;
+                }
+                else
+                {
+                    LogInfo("ERROR: Verificación de VM agotó tiempo después de 5 segundos, continuando con monitoreo de archivos");
+                    return false;
                 }
             }
             catch (Exception ex)
             {
-                LogError($"Error pinging {hostname}: {ex.Message}");
+                LogError($"ERROR: Monitoreo de VM falló con error: {ex.Message}, continuando con monitoreo de archivos");
                 return false;
             }
         }
 
+        #endregion
 
-        //private static bool checkVMInByVNC()
-        //{
-        //    bool VMinUse = false;
+        #region Métodos de Utilidad
 
-        //    for (int i = 1; i <= 4; i++)
-        //    {
-        //        string ipvm = $"10.0.0.{i}";
-
-        //        // Use a timeout for the ping operation
-                
-        //            // Execute the script with proper timeout handling
-        //        ProcessStartInfo startInfo = new ProcessStartInfo
-        //        {
-        //            FileName = @"c:\SUMInstall\PsExec64.exe",
-        //            Arguments = $@"\\{ipvm} -u cc3user -p sthi -h -i 1 -accepteula -nobanner cmd /c ""c:\Users\cc3user\Desktop\VM_Monitoring.bat""",
-        //            UseShellExecute = false,
-        //            RedirectStandardOutput = true,
-        //            RedirectStandardError = true,
-        //            CreateNoWindow = true
-        //        };
-        //        using (Process process = Process.Start(startInfo))
-        //        {
-        //            process.WaitForExit(1000); // SINCRÓNO - espera a que termine
-
-        //            string output = process.StandardOutput.ReadToEnd();
-        //            string errors = process.StandardError.ReadToEnd();
-
-        //            Console.WriteLine($"Código de salida: {process.ExitCode}");
-
-        //            if (!string.IsNullOrEmpty(output))
-        //            {
-        //                Console.WriteLine($"Salida: {output}");
-
-        //                if (output == "VM_IN_USE_BY_VNC")
-        //                {
-        //                    return true;
-
-        //                }
-        //            }
-
-
-        //            if (!string.IsNullOrEmpty(errors))
-        //                Console.WriteLine($"Errores: {errors}");
-        //        }
-
-        //    }
-
-        //    return VMinUse;
-        //}
-
-
-
-        private static void closeVNCIntoVM()
-        {
-
-            lastVmConnectedDetection = DateTime.MinValue;
-            for (int i = 1; i <= 4; i++)
-            {
-                string ipvm = $"10.0.0.{i}";
-
-                // Use a timeout for the ping operation
-                if (PingHostWithTimeout(ipvm, 1000))
-                {
-                    // Execute the script with proper timeout handling
-                    ProcessStartInfo startInfo = new ProcessStartInfo
-                    {
-                        FileName = @"c:\SUMInstall\PsExec64.exe",
-                        Arguments = $@"\\{ipvm} -u cc3user -p sthi -h -i 1 -accepteula -nobanner cmd /c ""c:\Users\cc3user\Desktop\VM_Close_VNC.bat""",
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true
-                    };
-                    using (Process process = Process.Start(startInfo))
-                    {
-                        process.WaitForExit(1000); // SINCRÓNO - espera a que termine
-                        
-                        string output = process.StandardOutput.ReadToEnd();
-                        string errors = process.StandardError.ReadToEnd();
-
-                        Console.WriteLine($"Código de salida: {process.ExitCode}");
-
-                        if (!string.IsNullOrEmpty(output))
-                            Console.WriteLine($"Salida: {output}");
-
-                        if (!string.IsNullOrEmpty(errors))
-                            Console.WriteLine($"Errores: {errors}");
-                    }
-
-                }
-                else
-                {
-                    LogInfo($"VM {ipvm} is not reachable, skipping");
-                }
-            }
-
-        }
-
-
-        private static void ExecuteVmCloseScriptAsync(string ipAddress)
-        {
-            Task.Run(() =>
-            {
-                try
-                {
-                    // Check if VM_Close_PopUP.bat exists on the VM desktop, with timeout
-                    string remoteBatPathPopUp = $@"\\{ipAddress}\c$\Users\cc3user\Desktop\VM_Close_PopUP.bat";
-                    string remoteBatPathCloseVNC = $@"\\{ipAddress}\c$\Users\cc3user\Desktop\VM_Close_VNC.bat";
-                    string remoteBatPathMonitoringVM = $@"\\{ipAddress}\c$\Users\cc3user\Desktop\VM_Monitoring.bat";
-                    string localBatPathPopUp = @"C:\SUMInstall\VM_Close_PopUP.bat";
-                    string localBatPathCloseVNC = @"C:\SUMInstall\VM_Close_VNC.bat";
-                    string localBatPathMonitoringVM = @"C:\SUMInstall\VM_Monitoring.bat";
-                    string SUMVersion = @"C:\SUMInstall\Rev.txt";
-
-                    // Use a timeout for file operations
-                    var copyTask = Task.Run(() =>
-                    {
-                        try
-                        {
-                            if (!File.Exists(remoteBatPathPopUp) || !File.Exists(remoteBatPathCloseVNC) || !File.Exists(remoteBatPathMonitoringVM))
-                            {
-                                if (File.Exists(localBatPathPopUp) || File.Exists(localBatPathCloseVNC) || File.Exists(localBatPathMonitoringVM))
-                                {
-                                    File.Copy(localBatPathPopUp, remoteBatPathPopUp, true);
-                                    File.Copy(localBatPathCloseVNC, remoteBatPathCloseVNC, true);
-                                    File.Copy(localBatPathMonitoringVM, remoteBatPathMonitoringVM, true);
-                                    LogInfo($"Copied VM_Close_PopUP.bat to {ipAddress} desktop");
-                                    return true;
-                                }
-                                else
-                                {
-                                    LogError($"Source bat file not found at {localBatPathPopUp} or {localBatPathCloseVNC}");
-                                    File.Delete(SUMVersion);
-                                    return false;
-                                }
-                            }
-                            else
-                            {
-                                LogInfo($"VM_Close_PopUP.bat already exists on {ipAddress} desktop");
-                                return true;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            LogError($"Failed to copy VM_Close_PopUP.bat to {ipAddress}: {ex.Message}");
-                            return false;
-                        }
-                    });
-
-                    // Wait for copy operation with 5-second timeout
-                    if (!copyTask.Wait(5000))
-                    {
-                        LogError($"File copy to {ipAddress} timed out after 5 seconds");
-                        return;
-                    }
-
-                    if (!copyTask.Result)
-                    {
-                        LogError($"File copy to {ipAddress} failed");
-                        return;
-                    }
-
-                    // Execute the script with proper timeout handling
-                    ProcessStartInfo startInfo = new ProcessStartInfo
-                    {
-                        FileName = @"c:\SUMInstall\PsExec64.exe",
-                        Arguments = $@"\\{ipAddress} -u cc3user -p sthi -h -i 1 -accepteula -nobanner cmd /c ""c:\Users\cc3user\Desktop\VM_Close_PopUP.bat""",
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true
-                    };
-
-                    LogInfo($"Executing VM close script on {ipAddress}");
-
-                    using (Process process = Process.Start(startInfo))
-                    {
-                        // Set a more reasonable timeout for the process
-                        bool finished = process.WaitForExit(10000); // 10 seconds
-
-                        if (finished)
-                        {
-                            string output = process.StandardOutput.ReadToEnd();
-                            string errors = process.StandardError.ReadToEnd();
-
-                            LogInfo($"VM script on {ipAddress} - Exit code: {process.ExitCode}");
-
-                            if (!string.IsNullOrEmpty(output))
-                                LogInfo($"Output: {output}");
-
-                            if (!string.IsNullOrEmpty(errors))
-                                LogError($"Errors: {errors}");
-                        }
-                        else
-                        {
-                            LogError($"VM script on {ipAddress} timed out, killing process");
-                            try
-                            {
-                                process.Kill();
-                            }
-                            catch (Exception killEx)
-                            {
-                                LogError($"Failed to kill timed out process: {killEx.Message}");
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LogError($"Error executing VM close script on {ipAddress}: {ex.Message}");
-                }
-            });
-        }
-
-        #region Utility Methods
-
+        /// <summary>
+        /// Oculta la ventana de consola cuando no está en modo debug
+        /// </summary>
         private static void HideConsoleWindow()
         {
             var handle = GetConsoleWindow();
@@ -699,6 +394,9 @@ namespace SystemUtilizationMonitor
         [System.Runtime.InteropServices.DllImport("kernel32.dll")]
         private static extern bool FreeConsole();
 
+        /// <summary>
+        /// Carga la configuración de la aplicación desde archivo JSON
+        /// </summary>
         private static void LoadConfiguration()
         {
             string configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -711,21 +409,24 @@ namespace SystemUtilizationMonitor
             appConfig = JsonConvert.DeserializeObject<ConfigurationModel>(jsonContent);
         }
 
+        /// <summary>
+        /// Crea una configuración por defecto si no existe el archivo de configuración
+        /// </summary>
+        /// <param name="configPath">Ruta donde crear el archivo de configuración</param>
         private static void CreateDefaultConfiguration(string configPath)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(configPath));
 
-            var defaultConfig = new ConfigurationModel
-            {
-                SumPOR = new SumPORConfig { Debug = false, ShouldReadLogFiles = true },
-                Monitoring = new MonitoringConfig { RecordIntervalMinutes = 5 },
-                JsonOutputPath = ""
-            };
+            // Usar el constructor por defecto que ya tiene todos los valores inicializados
+            var defaultConfig = new ConfigurationModel();
 
             string jsonContent = JsonConvert.SerializeObject(defaultConfig, Formatting.Indented);
             File.WriteAllText(configPath, jsonContent);
         }
 
+        /// <summary>
+        /// Configura el directorio de salida para archivos de monitoreo
+        /// </summary>
         private static void SetupOutputDirectory()
         {
             outputDirectory = !string.IsNullOrEmpty(appConfig.JsonOutputPath)
@@ -737,18 +438,27 @@ namespace SystemUtilizationMonitor
                 Directory.CreateDirectory(outputDirectory);
         }
 
+        /// <summary>
+        /// Inicializa variables para el día actual
+        /// </summary>
         private static void InitializeForCurrentDay()
         {
             currentDay = DateTime.UtcNow.Date;
             currentOutputFile = Path.Combine(outputDirectory, $"SystemUtilizationTimeFrames{currentDay:yyyyMMdd}.json");
         }
 
+        /// <summary>
+        /// Configura los parámetros de monitoreo
+        /// </summary>
         private static void SetupMonitoringConfiguration()
         {
             config = new MonitorConfiguration();
             config.RecordInterval = TimeSpan.FromMinutes(appConfig.Monitoring.RecordIntervalMinutes);
         }
 
+        /// <summary>
+        /// Configura el manejo de señales de cancelación (Ctrl+C)
+        /// </summary>
         private static void SetupCancellation()
         {
             Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
@@ -758,20 +468,26 @@ namespace SystemUtilizationMonitor
             };
         }
 
+        /// <summary>
+        /// Inicializa los hooks de entrada (mouse y teclado)
+        /// </summary>
         private static void InitializeInputHooks()
         {
             try
             {
                 inputHook = new InputHookManager(appConfig);
                 inputHook?.Start();
-                LogInfo("Input monitoring initialized successfully");
+                LogInfo("Monitoreo de entrada inicializado exitosamente");
             }
             catch (Exception ex)
             {
-                LogError("Could not initialize input hooks: " + ex.Message);
+                LogError("No se pudieron inicializar hooks de entrada: " + ex.Message);
             }
         }
 
+        /// <summary>
+        /// Inicia tarea de limpieza de archivos en segundo plano
+        /// </summary>
         private static void StartFileCleanupTask()
         {
             Task.Factory.StartNew(() =>
@@ -781,92 +497,46 @@ namespace SystemUtilizationMonitor
                     try
                     {
                         Thread.Sleep(TimeSpan.FromHours(1));
-                        // Add file cleanup logic here if needed
+                        // Agregar lógica de limpieza de archivos aquí si es necesario
                     }
                     catch (Exception ex)
                     {
-                        LogError("File cleanup error: " + ex.Message);
+                        LogError("Error en limpieza de archivos: " + ex.Message);
                     }
                 }
             });
         }
 
-        private static UtilizationTimeFrame CollectUtilizationData(DateTime startTime, DateTime endTime)
-        {
-            var timeFrame = new UtilizationTimeFrame
-            {
-                StartTime = startTime,
-                EndTime = endTime,
-                MachineName = Environment.MachineName
-            };
-
-            if (inputHook != null)
-            {
-                timeFrame.MouseEvents = inputHook.GetMouseEventCount();
-                timeFrame.KeyboardEvents = inputHook.GetKeyboardEventCount();
-            }
-
-            // Create MonitoringVMs instance with configuration
-            MonitoringVMs monitoringVMs = new MonitoringVMs(appConfig);
-            bool vmInUse = false;
-
-            try
-            {
-                // Set a timeout for the VM check to prevent hanging
-                var vmCheckTask = Task.Run(() => monitoringVMs.CheckVMsAsync());
-
-                // Wait for the task to complete with a timeout (e.g., 5 seconds)
-                if (vmCheckTask.Wait(TimeSpan.FromSeconds(5)))
-                {
-                    vmInUse = vmCheckTask.Result;
-                    LogInfo($"INFO: VM check completed successfully. VMs in use: {vmInUse}");
-                }
-                else
-                {
-                    LogInfo("ERROR: VM check timed out after 5 seconds, continuing with file monitoring");
-                    vmInUse = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError($"ERROR: VM monitoring failed with error: {ex.Message}, continuing with file monitoring");
-                vmInUse = false;
-            }
-
-            // Continue with the logic regardless of VM check results
-            if (vmInUse)
-            {
-                timeFrame.FileChanges = string.Empty;
-                timeFrame.FileChanges = "VMs In Use By VMC or hyperV";
-                LogInfo("INFO: VMs detected in use, skipping file monitoring");
-            }
-            else
-            {
-                timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
-                LogInfo("INFO: No VMs in use or VM check failed, proceeding with file monitoring");
-            }
-
-            return timeFrame;
-        }
-
+        /// <summary>
+        /// Resetea contadores de entrada para el siguiente ciclo
+        /// </summary>
         private static void ResetCounters()
         {
             inputHook?.ResetCounters();
         }
 
+        /// <summary>
+        /// Escribe datos de utilización al archivo JSON usando el serializador personalizado
+        /// </summary>
+        /// <param name="fileName">Nombre del archivo de salida</param>
+        /// <param name="timeFrame">Datos de utilización a escribir</param>
         private static void WriteToFile(string fileName, UtilizationTimeFrame timeFrame)
         {
             try
             {
-                var json = JsonConvert.SerializeObject(timeFrame);
+                var json = CustomJsonSerializer.Serialize(timeFrame); 
                 File.AppendAllText(fileName, json + Environment.NewLine);
             }
             catch (Exception ex)
             {
-                LogError("Error writing to file: " + ex.Message);
+                LogError("Error escribiendo al archivo: " + ex.Message);
             }
         }
 
+        /// <summary>
+        /// Registra mensaje de información en consola y archivo de log
+        /// </summary>
+        /// <param name="message">Mensaje a registrar</param>
         private static void LogInfo(string message)
         {
             if (appConfig?.SumPOR?.Debug == true)
@@ -882,6 +552,10 @@ namespace SystemUtilizationMonitor
             catch { }
         }
 
+        /// <summary>
+        /// Registra mensaje de error en consola y archivo de log
+        /// </summary>
+        /// <param name="message">Mensaje de error a registrar</param>
         private static void LogError(string message)
         {
             if (appConfig?.SumPOR?.Debug == true)
@@ -897,10 +571,13 @@ namespace SystemUtilizationMonitor
             catch { }
         }
 
+        /// <summary>
+        /// Limpia recursos antes de cerrar la aplicación
+        /// </summary>
         private static void Cleanup()
         {
             inputHook?.Dispose();
-            LogInfo("Cleanup completed.");
+            LogInfo("Limpieza completada.");
         }
 
         #endregion
