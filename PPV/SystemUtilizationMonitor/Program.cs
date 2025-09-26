@@ -1,13 +1,14 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-using System.Net.NetworkInformation;
-using Newtonsoft.Json;
 using SystemUtilizationMonitor.Models;
 using SystemUtilizationMonitor.Services;
 using SystemUtilizationMonitor.Utilities;
@@ -30,7 +31,7 @@ namespace SystemUtilizationMonitor
         // Constants for VM management
         private const string KILLING_PENDINGS_FILE = @"C:\SUMInstall\KillingPendings.txt";
         private const int VM_TIMEOUT_MINUTES = 2;
-        private const int KILL_DELAY_MINUTES = 2;
+        private const int KILL_DELAY_MINUTES = 1;
 
         [STAThread]
         public static void Main(string[] args)
@@ -100,6 +101,7 @@ namespace SystemUtilizationMonitor
                     {
                         LogInfo("VMConnect processes no longer detected, resetting timer");
                         lastVmConnectedDetection = DateTime.MinValue;
+                       // File.Delete(KILLING_PENDINGS_FILE); //esto seria cicliclo osea cada 5min se borraria? igual la linea de arriba?
                     }
                 }
 
@@ -139,17 +141,33 @@ namespace SystemUtilizationMonitor
 
         private static bool CheckVmConnectProcesses()
         {
+            MonitoringVMs monitoringVMs = new MonitoringVMs(appConfig);
             try
             {
-                Process[] vmConnectProcesses = Process.GetProcessesByName("vmconnect");
-                return vmConnectProcesses.Length > 0;
+                var vmCheckTask = Task.Run(() => monitoringVMs.CheckVMsAsync());
+                var vmCheck = vmCheckTask.GetAwaiter().GetResult();  // <-- espera el resultado
+                var hasHyperV = Process.GetProcessesByName("vmconnect").Any();
+
+                if (vmCheck)
+                {
+                    return true;
+                }
+
+                if(hasHyperV)
+                {
+                    return true;
+                }
             }
             catch (Exception ex)
             {
-                LogError($"Error checking vmconnect processes: {ex.Message}");
+                LogError($"Error checking processes: {ex.Message}");
                 return false;
             }
+
+            return false;
         }
+
+
 
         private static bool ShouldScheduleVmClose()
         {
@@ -196,6 +214,7 @@ namespace SystemUtilizationMonitor
                                 {
                                     KillVmConnectProcesses();
                                     killExecuted = true;
+                                    File.Delete(KILLING_PENDINGS_FILE); /// tambien lo agregue
                                     LogInfo("VM kill executed - no user activity detected");
                                 }
                                 else
@@ -241,7 +260,7 @@ namespace SystemUtilizationMonitor
             }
         }
 
-        private static bool CheckVMUserActivity()
+        private static bool CheckVMUserActivity()   ///porque dice alex?
         {
             try
             {
@@ -262,10 +281,15 @@ namespace SystemUtilizationMonitor
                                 // Check if content contains "yes" anywhere (case-insensitive)
                                 if (content.IndexOf("yes", StringComparison.OrdinalIgnoreCase) >= 0)
                                 {
+                                    
                                     LogInfo($"User activity detected on VM {ipvm}");
                                     // Clean the activity file
                                     File.WriteAllText(remoteActivityFile, "");
-                                    File.WriteAllText(KILLING_PENDINGS_FILE, "");
+                                    File.WriteAllText(KILLING_PENDINGS_FILE, "");  /// no lo esta haciendo
+                                    LogInfo($"deleting");
+                                    //File.Delete(KILLING_PENDINGS_FILE);   // se lo agregue
+                                    lastVmConnectedDetection = DateTime.MinValue;
+                                    LogInfo($"Daleted");
                                     return true;
                                 }
                             }
@@ -315,8 +339,9 @@ namespace SystemUtilizationMonitor
         {
             try
             {
+                //File.Delete(KILLING_PENDINGS_FILE);//////////////////////
                 Process[] vmConnectProcesses = Process.GetProcessesByName("vmconnect");
-
+                closeVNCIntoVM();
                 if (vmConnectProcesses.Length > 0)
                 {
                     LogInfo($"Found {vmConnectProcesses.Length} vmconnect process(es) to terminate");
@@ -327,7 +352,6 @@ namespace SystemUtilizationMonitor
                         {
                             LogInfo($"Killing vmconnect process with PID: {process.Id}");
                             process.Kill();
-                            process.WaitForExit(5000);
                             LogInfo($"Successfully killed vmconnect process with PID: {process.Id}");
                             File.WriteAllText(KILLING_PENDINGS_FILE, "");
                         }
@@ -441,6 +465,106 @@ namespace SystemUtilizationMonitor
             }
         }
 
+
+        //private static bool checkVMInByVNC()
+        //{
+        //    bool VMinUse = false;
+
+        //    for (int i = 1; i <= 4; i++)
+        //    {
+        //        string ipvm = $"10.0.0.{i}";
+
+        //        // Use a timeout for the ping operation
+                
+        //            // Execute the script with proper timeout handling
+        //        ProcessStartInfo startInfo = new ProcessStartInfo
+        //        {
+        //            FileName = @"c:\SUMInstall\PsExec64.exe",
+        //            Arguments = $@"\\{ipvm} -u cc3user -p sthi -h -i 1 -accepteula -nobanner cmd /c ""c:\Users\cc3user\Desktop\VM_Monitoring.bat""",
+        //            UseShellExecute = false,
+        //            RedirectStandardOutput = true,
+        //            RedirectStandardError = true,
+        //            CreateNoWindow = true
+        //        };
+        //        using (Process process = Process.Start(startInfo))
+        //        {
+        //            process.WaitForExit(1000); // SINCRÓNO - espera a que termine
+
+        //            string output = process.StandardOutput.ReadToEnd();
+        //            string errors = process.StandardError.ReadToEnd();
+
+        //            Console.WriteLine($"Código de salida: {process.ExitCode}");
+
+        //            if (!string.IsNullOrEmpty(output))
+        //            {
+        //                Console.WriteLine($"Salida: {output}");
+
+        //                if (output == "VM_IN_USE_BY_VNC")
+        //                {
+        //                    return true;
+
+        //                }
+        //            }
+
+
+        //            if (!string.IsNullOrEmpty(errors))
+        //                Console.WriteLine($"Errores: {errors}");
+        //        }
+
+        //    }
+
+        //    return VMinUse;
+        //}
+
+
+
+        private static void closeVNCIntoVM()
+        {
+
+            lastVmConnectedDetection = DateTime.MinValue;
+            for (int i = 1; i <= 4; i++)
+            {
+                string ipvm = $"10.0.0.{i}";
+
+                // Use a timeout for the ping operation
+                if (PingHostWithTimeout(ipvm, 1000))
+                {
+                    // Execute the script with proper timeout handling
+                    ProcessStartInfo startInfo = new ProcessStartInfo
+                    {
+                        FileName = @"c:\SUMInstall\PsExec64.exe",
+                        Arguments = $@"\\{ipvm} -u cc3user -p sthi -h -i 1 -accepteula -nobanner cmd /c ""c:\Users\cc3user\Desktop\VM_Close_VNC.bat""",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true
+                    };
+                    using (Process process = Process.Start(startInfo))
+                    {
+                        process.WaitForExit(1000); // SINCRÓNO - espera a que termine
+                        
+                        string output = process.StandardOutput.ReadToEnd();
+                        string errors = process.StandardError.ReadToEnd();
+
+                        Console.WriteLine($"Código de salida: {process.ExitCode}");
+
+                        if (!string.IsNullOrEmpty(output))
+                            Console.WriteLine($"Salida: {output}");
+
+                        if (!string.IsNullOrEmpty(errors))
+                            Console.WriteLine($"Errores: {errors}");
+                    }
+
+                }
+                else
+                {
+                    LogInfo($"VM {ipvm} is not reachable, skipping");
+                }
+            }
+
+        }
+
+
         private static void ExecuteVmCloseScriptAsync(string ipAddress)
         {
             Task.Run(() =>
@@ -448,25 +572,33 @@ namespace SystemUtilizationMonitor
                 try
                 {
                     // Check if VM_Close_PopUP.bat exists on the VM desktop, with timeout
-                    string remoteBatPath = $@"\\{ipAddress}\c$\Users\cc3user\Desktop\VM_Close_PopUP.bat";
-                    string localBatPath = @"C:\SUMInstall\VM_Close_PopUP.bat";
+                    string remoteBatPathPopUp = $@"\\{ipAddress}\c$\Users\cc3user\Desktop\VM_Close_PopUP.bat";
+                    string remoteBatPathCloseVNC = $@"\\{ipAddress}\c$\Users\cc3user\Desktop\VM_Close_VNC.bat";
+                    string remoteBatPathMonitoringVM = $@"\\{ipAddress}\c$\Users\cc3user\Desktop\VM_Monitoring.bat";
+                    string localBatPathPopUp = @"C:\SUMInstall\VM_Close_PopUP.bat";
+                    string localBatPathCloseVNC = @"C:\SUMInstall\VM_Close_VNC.bat";
+                    string localBatPathMonitoringVM = @"C:\SUMInstall\VM_Monitoring.bat";
+                    string SUMVersion = @"C:\SUMInstall\Rev.txt";
 
                     // Use a timeout for file operations
                     var copyTask = Task.Run(() =>
                     {
                         try
                         {
-                            if (!File.Exists(remoteBatPath))
+                            if (!File.Exists(remoteBatPathPopUp) || !File.Exists(remoteBatPathCloseVNC) || !File.Exists(remoteBatPathMonitoringVM))
                             {
-                                if (File.Exists(localBatPath))
+                                if (File.Exists(localBatPathPopUp) || File.Exists(localBatPathCloseVNC) || File.Exists(localBatPathMonitoringVM))
                                 {
-                                    File.Copy(localBatPath, remoteBatPath, true);
+                                    File.Copy(localBatPathPopUp, remoteBatPathPopUp, true);
+                                    File.Copy(localBatPathCloseVNC, remoteBatPathCloseVNC, true);
+                                    File.Copy(localBatPathMonitoringVM, remoteBatPathMonitoringVM, true);
                                     LogInfo($"Copied VM_Close_PopUP.bat to {ipAddress} desktop");
                                     return true;
                                 }
                                 else
                                 {
-                                    LogError($"Source bat file not found at {localBatPath}");
+                                    LogError($"Source bat file not found at {localBatPathPopUp} or {localBatPathCloseVNC}");
+                                    File.Delete(SUMVersion);
                                     return false;
                                 }
                             }

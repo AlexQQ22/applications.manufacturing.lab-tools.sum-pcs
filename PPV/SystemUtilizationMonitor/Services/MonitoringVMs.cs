@@ -82,7 +82,7 @@ public class MonitoringVMs
         }
     }
 
-    private async Task CopyMonitoringFileAsync(string ipvm)
+    public async Task CopyMonitoringFileAsync(string ipvm)
     {
         try
         {
@@ -100,7 +100,7 @@ public class MonitoringVMs
         }
     }
 
-    private async Task<string> ExecuteRemoteMonitoringAsync(string ipvm)
+    public async Task<string> ExecuteRemoteMonitoringAsync(string ipvm)
     {
         try
         {
