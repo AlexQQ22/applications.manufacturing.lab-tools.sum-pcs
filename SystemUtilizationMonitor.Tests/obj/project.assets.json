@@ -1,7 +1,7 @@
 {
   "version": 3,
   "targets": {
-    "net6.0": {
+    "net8.0-windows7.0": {
       "coverlet.collector/6.0.0": {
         "type": "package",
         "build": {
@@ -10,9 +10,6 @@
       },
       "FluentAssertions/6.12.0": {
         "type": "package",
-        "dependencies": {
-          "System.Configuration.ConfigurationManager": "4.4.0"
-        },
         "compile": {
           "lib/net6.0/FluentAssertions.dll": {
             "related": ".pdb;.xml"
@@ -315,6 +312,15 @@
           "build/netcoreapp3.1/Microsoft.TestPlatform.TestHost.props": {}
         }
       },
+      "MouseKeyHook/5.6.0": {
+        "type": "package",
+        "compile": {
+          "lib/net40/Gma.System.MouseKeyHook.dll": {}
+        },
+        "runtime": {
+          "lib/net40/Gma.System.MouseKeyHook.dll": {}
+        }
+      },
       "NETStandard.Library/1.6.1": {
         "type": "package",
         "dependencies": {
@@ -341,37 +347,6 @@
         },
         "runtime": {
           "lib/netstandard2.0/NuGet.Frameworks.dll": {}
-        }
-      },
-      "System.Configuration.ConfigurationManager/4.4.0": {
-        "type": "package",
-        "dependencies": {
-          "System.Security.Cryptography.ProtectedData": "4.4.0"
-        },
-        "compile": {
-          "ref/netstandard2.0/System.Configuration.ConfigurationManager.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/netstandard2.0/System.Configuration.ConfigurationManager.dll": {}
-        }
-      },
-      "System.Security.Cryptography.ProtectedData/4.4.0": {
-        "type": "package",
-        "compile": {
-          "ref/netstandard2.0/_._": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/netstandard2.0/System.Security.Cryptography.ProtectedData.dll": {}
-        },
-        "runtimeTargets": {
-          "runtimes/win/lib/netstandard2.0/System.Security.Cryptography.ProtectedData.dll": {
-            "assetType": "runtime",
-            "rid": "win"
-          }
         }
       },
       "xunit/2.6.1": {
@@ -471,6 +446,23 @@
         "build": {
           "build/net6.0/xunit.runner.visualstudio.props": {}
         }
+      },
+      "SystemUtilizationMonitor/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "MouseKeyHook": "5.6.0",
+          "Newtonsoft.Json": "13.0.3"
+        },
+        "compile": {
+          "bin/placeholder/SystemUtilizationMonitor.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/SystemUtilizationMonitor.dll": {}
+        },
+        "frameworkReferences": [
+          "Microsoft.WindowsDesktop.App.WindowsForms"
+        ]
       }
     }
   },
@@ -832,6 +824,18 @@
         "microsoft.testplatform.testhost.nuspec"
       ]
     },
+    "MouseKeyHook/5.6.0": {
+      "sha512": "xDNM10IfRED0+k78O9VvY0/suqeNJVg6GttEFPP/N4CEMujwVrfU+UatFN7Rb+gdjqIfhKblz7/nG3pUQmHaJg==",
+      "type": "package",
+      "path": "mousekeyhook/5.6.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/net40/Gma.System.MouseKeyHook.dll",
+        "mousekeyhook.5.6.0.nupkg.sha512",
+        "mousekeyhook.nuspec"
+      ]
+    },
     "NETStandard.Library/1.6.1": {
       "sha512": "WcSp3+vP+yHNgS8EV5J7pZ9IRpeDuARBPN28by8zqff1wJQXm26PVU8L3/fYLBJVU7BtDyqNVWq2KlCVvSSR4A==",
       "type": "package",
@@ -888,68 +892,6 @@
         "lib/netstandard2.0/NuGet.Frameworks.dll",
         "nuget.frameworks.6.5.0.nupkg.sha512",
         "nuget.frameworks.nuspec"
-      ]
-    },
-    "System.Configuration.ConfigurationManager/4.4.0": {
-      "sha512": "gWwQv/Ug1qWJmHCmN17nAbxJYmQBM/E94QxKLksvUiiKB1Ld3Sc/eK1lgmbSjDFxkQhVuayI/cGFZhpBSodLrg==",
-      "type": "package",
-      "path": "system.configuration.configurationmanager/4.4.0",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "LICENSE.TXT",
-        "THIRD-PARTY-NOTICES.TXT",
-        "lib/net461/System.Configuration.ConfigurationManager.dll",
-        "lib/netstandard2.0/System.Configuration.ConfigurationManager.dll",
-        "ref/net461/System.Configuration.ConfigurationManager.dll",
-        "ref/net461/System.Configuration.ConfigurationManager.xml",
-        "ref/netstandard2.0/System.Configuration.ConfigurationManager.dll",
-        "ref/netstandard2.0/System.Configuration.ConfigurationManager.xml",
-        "system.configuration.configurationmanager.4.4.0.nupkg.sha512",
-        "system.configuration.configurationmanager.nuspec",
-        "useSharedDesignerContext.txt",
-        "version.txt"
-      ]
-    },
-    "System.Security.Cryptography.ProtectedData/4.4.0": {
-      "sha512": "cJV7ScGW7EhatRsjehfvvYVBvtiSMKgN8bOVI0bQhnF5bU7vnHVIsH49Kva7i7GWaWYvmEzkYVk1TC+gZYBEog==",
-      "type": "package",
-      "path": "system.security.cryptography.protecteddata/4.4.0",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "LICENSE.TXT",
-        "THIRD-PARTY-NOTICES.TXT",
-        "lib/MonoAndroid10/_._",
-        "lib/MonoTouch10/_._",
-        "lib/net46/System.Security.Cryptography.ProtectedData.dll",
-        "lib/net461/System.Security.Cryptography.ProtectedData.dll",
-        "lib/netstandard1.3/System.Security.Cryptography.ProtectedData.dll",
-        "lib/netstandard2.0/System.Security.Cryptography.ProtectedData.dll",
-        "lib/xamarinios10/_._",
-        "lib/xamarinmac20/_._",
-        "lib/xamarintvos10/_._",
-        "lib/xamarinwatchos10/_._",
-        "ref/MonoAndroid10/_._",
-        "ref/MonoTouch10/_._",
-        "ref/net46/System.Security.Cryptography.ProtectedData.dll",
-        "ref/net461/System.Security.Cryptography.ProtectedData.dll",
-        "ref/net461/System.Security.Cryptography.ProtectedData.xml",
-        "ref/netstandard1.3/System.Security.Cryptography.ProtectedData.dll",
-        "ref/netstandard2.0/System.Security.Cryptography.ProtectedData.dll",
-        "ref/netstandard2.0/System.Security.Cryptography.ProtectedData.xml",
-        "ref/xamarinios10/_._",
-        "ref/xamarinmac20/_._",
-        "ref/xamarintvos10/_._",
-        "ref/xamarinwatchos10/_._",
-        "runtimes/win/lib/net46/System.Security.Cryptography.ProtectedData.dll",
-        "runtimes/win/lib/net461/System.Security.Cryptography.ProtectedData.dll",
-        "runtimes/win/lib/netstandard1.3/System.Security.Cryptography.ProtectedData.dll",
-        "runtimes/win/lib/netstandard2.0/System.Security.Cryptography.ProtectedData.dll",
-        "system.security.cryptography.protecteddata.4.4.0.nupkg.sha512",
-        "system.security.cryptography.protecteddata.nuspec",
-        "useSharedDesignerContext.txt",
-        "version.txt"
       ]
     },
     "xunit/2.6.1": {
@@ -1095,14 +1037,19 @@
         "xunit.runner.visualstudio.2.5.3.nupkg.sha512",
         "xunit.runner.visualstudio.nuspec"
       ]
+    },
+    "SystemUtilizationMonitor/1.0.0": {
+      "type": "project",
+      "path": "../PPV/SystemUtilizationMonitor/SystemUtilizationMonitor.csproj",
+      "msbuildProject": "../PPV/SystemUtilizationMonitor/SystemUtilizationMonitor.csproj"
     }
   },
   "projectFileDependencyGroups": {
-    "net6.0": [
+    "net8.0-windows7.0": [
       "FluentAssertions >= 6.12.0",
       "Microsoft.NET.Test.Sdk >= 17.8.0",
       "Newtonsoft.Json >= 13.0.3",
-      "System.Windows.Forms >= 6.0.0",
+      "SystemUtilizationMonitor >= 1.0.0",
       "coverlet.collector >= 6.0.0",
       "xunit >= 2.6.1",
       "xunit.runner.visualstudio >= 2.5.3"
@@ -1124,15 +1071,19 @@
         "C:\\Users\\aquesad1\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
-        "net6.0"
+        "net8.0-windows"
       ],
       "sources": {
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
-        "net6.0": {
-          "targetAlias": "net6.0",
-          "projectReferences": {}
+        "net8.0-windows7.0": {
+          "targetAlias": "net8.0-windows",
+          "projectReferences": {
+            "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj": {
+              "projectPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
@@ -1148,8 +1099,8 @@
       "SdkAnalysisLevel": "10.0.100"
     },
     "frameworks": {
-      "net6.0": {
-        "targetAlias": "net6.0",
+      "net8.0-windows7.0": {
+        "targetAlias": "net8.0-windows",
         "dependencies": {
           "FluentAssertions": {
             "target": "Package",
@@ -1162,10 +1113,6 @@
           "Newtonsoft.Json": {
             "target": "Package",
             "version": "[13.0.3, )"
-          },
-          "System.Windows.Forms": {
-            "target": "Package",
-            "version": "[6.0.0, )"
           },
           "coverlet.collector": {
             "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
@@ -1198,29 +1145,34 @@
         "downloadDependencies": [
           {
             "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[6.0.36, 6.0.36]"
+            "version": "[8.0.16, 8.0.16]"
           },
           {
             "name": "Microsoft.NETCore.App.Ref",
-            "version": "[6.0.36, 6.0.36]"
+            "version": "[8.0.16, 8.0.16]"
           },
           {
             "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[6.0.36, 6.0.36]"
+            "version": "[8.0.16, 8.0.16]"
           }
         ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
+          },
+          "Microsoft.WindowsDesktop.App.WindowsForms": {
+            "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.100-preview.5.25277.114\\RuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.100-preview.5.25277.114/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(, 4.7.32767]",
           "Microsoft.NETCore.App": "(, 2.1.32767]",
           "Microsoft.VisualBasic": "(, 10.3.32767]",
           "Microsoft.Win32.Primitives": "(, 4.3.32767]",
           "Microsoft.Win32.Registry": "(, 5.0.32767]",
+          "Microsoft.Win32.Registry.AccessControl": "(, 8.0.32767]",
+          "Microsoft.Win32.SystemEvents": "(, 8.0.32767]",
           "runtime.any.System.Collections": "(, 4.3.32767]",
           "runtime.any.System.Diagnostics.Tools": "(, 4.3.32767]",
           "runtime.any.System.Diagnostics.Tracing": "(, 4.3.32767]",
@@ -1374,9 +1326,10 @@
           "runtime.win8-arm.runtime.native.System.IO.Compression": "(, 4.3.32767]",
           "System.AppContext": "(, 4.3.32767]",
           "System.Buffers": "(, 4.5.32767]",
+          "System.CodeDom": "(, 8.0.32767]",
           "System.Collections": "(, 4.3.32767]",
           "System.Collections.Concurrent": "(, 4.3.32767]",
-          "System.Collections.Immutable": "(, 6.0.32767]",
+          "System.Collections.Immutable": "(, 8.0.32767]",
           "System.Collections.NonGeneric": "(, 4.3.32767]",
           "System.Collections.Specialized": "(, 4.3.32767]",
           "System.ComponentModel": "(, 4.3.32767]",
@@ -1384,22 +1337,27 @@
           "System.ComponentModel.EventBasedAsync": "(, 4.3.32767]",
           "System.ComponentModel.Primitives": "(, 4.3.32767]",
           "System.ComponentModel.TypeConverter": "(, 4.3.32767]",
+          "System.Configuration.ConfigurationManager": "(, 8.0.32767]",
           "System.Console": "(, 4.3.32767]",
           "System.Data.Common": "(, 4.3.32767]",
           "System.Data.DataSetExtensions": "(, 4.5.32767]",
           "System.Diagnostics.Contracts": "(, 4.3.32767]",
           "System.Diagnostics.Debug": "(, 4.3.32767]",
-          "System.Diagnostics.DiagnosticSource": "(, 6.0.32767]",
+          "System.Diagnostics.DiagnosticSource": "(, 8.0.32767]",
+          "System.Diagnostics.EventLog": "(, 8.0.32767]",
           "System.Diagnostics.FileVersionInfo": "(, 4.3.32767]",
+          "System.Diagnostics.PerformanceCounter": "(, 8.0.32767]",
           "System.Diagnostics.Process": "(, 4.3.32767]",
           "System.Diagnostics.StackTrace": "(, 4.3.32767]",
           "System.Diagnostics.TextWriterTraceListener": "(, 4.3.32767]",
           "System.Diagnostics.Tools": "(, 4.3.32767]",
           "System.Diagnostics.TraceSource": "(, 4.3.32767]",
           "System.Diagnostics.Tracing": "(, 4.3.32767]",
+          "System.DirectoryServices": "(, 8.0.32767]",
+          "System.Drawing.Common": "(, 8.0.32767]",
           "System.Drawing.Primitives": "(, 4.3.32767]",
           "System.Dynamic.Runtime": "(, 4.3.32767]",
-          "System.Formats.Asn1": "(, 6.0.32767]",
+          "System.Formats.Asn1": "(, 8.0.32767]",
           "System.Globalization": "(, 4.3.32767]",
           "System.Globalization.Calendars": "(, 4.3.32767]",
           "System.Globalization.Extensions": "(, 4.3.32767]",
@@ -1413,8 +1371,9 @@
           "System.IO.FileSystem.Watcher": "(, 4.3.32767]",
           "System.IO.IsolatedStorage": "(, 4.3.32767]",
           "System.IO.MemoryMappedFiles": "(, 4.3.32767]",
+          "System.IO.Packaging": "(, 8.0.32767]",
           "System.IO.Pipes": "(, 4.3.32767]",
-          "System.IO.Pipes.AccessControl": "(, 4.6.32767]",
+          "System.IO.Pipes.AccessControl": "(, 5.0.32767]",
           "System.IO.UnmanagedMemoryStream": "(, 4.3.32767]",
           "System.Linq": "(, 4.3.32767]",
           "System.Linq.Expressions": "(, 4.3.32767]",
@@ -1422,7 +1381,7 @@
           "System.Linq.Queryable": "(, 4.3.32767]",
           "System.Memory": "(, 4.5.32767]",
           "System.Net.Http": "(, 4.3.32767]",
-          "System.Net.Http.Json": "(, 6.0.32767]",
+          "System.Net.Http.Json": "(, 8.0.32767]",
           "System.Net.NameResolution": "(, 4.3.32767]",
           "System.Net.NetworkInformation": "(, 4.3.32767]",
           "System.Net.Ping": "(, 4.3.32767]",
@@ -1443,9 +1402,10 @@
           "System.Reflection.Emit.ILGeneration": "(, 4.7.32767]",
           "System.Reflection.Emit.Lightweight": "(, 4.7.32767]",
           "System.Reflection.Extensions": "(, 4.3.32767]",
-          "System.Reflection.Metadata": "(, 6.0.32767]",
+          "System.Reflection.Metadata": "(, 8.0.32767]",
           "System.Reflection.Primitives": "(, 4.3.32767]",
           "System.Reflection.TypeExtensions": "(, 4.7.32767]",
+          "System.Resources.Extensions": "(, 8.0.32767]",
           "System.Resources.Reader": "(, 4.3.32767]",
           "System.Resources.ResourceManager": "(, 4.3.32767]",
           "System.Resources.Writer": "(, 4.3.32767]",
@@ -1468,33 +1428,38 @@
           "System.Security.AccessControl": "(, 6.0.32767]",
           "System.Security.Claims": "(, 4.3.32767]",
           "System.Security.Cryptography.Algorithms": "(, 4.3.32767]",
-          "System.Security.Cryptography.Cng": "(, 4.6.32767]",
+          "System.Security.Cryptography.Cng": "(, 5.0.32767]",
           "System.Security.Cryptography.Csp": "(, 4.3.32767]",
           "System.Security.Cryptography.Encoding": "(, 4.3.32767]",
           "System.Security.Cryptography.OpenSsl": "(, 5.0.32767]",
+          "System.Security.Cryptography.Pkcs": "(, 8.0.32767]",
           "System.Security.Cryptography.Primitives": "(, 4.3.32767]",
+          "System.Security.Cryptography.ProtectedData": "(, 8.0.32767]",
           "System.Security.Cryptography.X509Certificates": "(, 4.3.32767]",
-          "System.Security.Cryptography.Xml": "(, 4.4.32767]",
+          "System.Security.Cryptography.Xml": "(, 8.0.32767]",
+          "System.Security.Permissions": "(, 8.0.32767]",
           "System.Security.Principal": "(, 4.3.32767]",
           "System.Security.Principal.Windows": "(, 5.0.32767]",
           "System.Security.SecureString": "(, 4.3.32767]",
           "System.Text.Encoding": "(, 4.3.32767]",
-          "System.Text.Encoding.CodePages": "(, 6.0.32767]",
+          "System.Text.Encoding.CodePages": "(, 8.0.32767]",
           "System.Text.Encoding.Extensions": "(, 4.3.32767]",
-          "System.Text.Encodings.Web": "(, 6.0.32767]",
-          "System.Text.Json": "(, 6.0.32767]",
+          "System.Text.Encodings.Web": "(, 8.0.32767]",
+          "System.Text.Json": "(, 8.0.32767]",
           "System.Text.RegularExpressions": "(, 4.3.32767]",
           "System.Threading": "(, 4.3.32767]",
-          "System.Threading.Channels": "(, 6.0.32767]",
+          "System.Threading.AccessControl": "(, 8.0.32767]",
+          "System.Threading.Channels": "(, 8.0.32767]",
           "System.Threading.Overlapped": "(, 4.3.32767]",
           "System.Threading.Tasks": "(, 4.3.32767]",
-          "System.Threading.Tasks.Dataflow": "(, 6.0.32767]",
+          "System.Threading.Tasks.Dataflow": "(, 8.0.32767]",
           "System.Threading.Tasks.Extensions": "(, 4.5.32767]",
           "System.Threading.Tasks.Parallel": "(, 4.3.32767]",
           "System.Threading.Thread": "(, 4.3.32767]",
           "System.Threading.ThreadPool": "(, 4.3.32767]",
           "System.Threading.Timer": "(, 4.3.32767]",
           "System.ValueTuple": "(, 4.5.32767]",
+          "System.Windows.Extensions": "(, 8.0.32767]",
           "System.Xml.ReaderWriter": "(, 4.3.32767]",
           "System.Xml.XDocument": "(, 4.3.32767]",
           "System.Xml.XmlDocument": "(, 4.3.32767]",
@@ -1507,12 +1472,13 @@
   },
   "logs": [
     {
-      "code": "NU1102",
-      "level": "Error",
-      "message": "Unable to find package System.Windows.Forms with version (>= 6.0.0)\r\n  - Found 1 version(s) in nuget.org [ Nearest version: 4.0.0 ]",
-      "libraryId": "System.Windows.Forms",
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'MouseKeyHook 5.6.0' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0-windows7.0'. This package may not be fully compatible with your project.",
+      "libraryId": "MouseKeyHook",
       "targetGraphs": [
-        "net6.0"
+        "net8.0-windows7.0"
       ]
     }
   ]

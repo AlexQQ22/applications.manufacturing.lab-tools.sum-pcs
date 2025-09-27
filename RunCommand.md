@@ -1,0 +1,1 @@
+RunSystemUtilizationTests.bat --source "%TEMP%\claude\hdmx_test_data" --local-results

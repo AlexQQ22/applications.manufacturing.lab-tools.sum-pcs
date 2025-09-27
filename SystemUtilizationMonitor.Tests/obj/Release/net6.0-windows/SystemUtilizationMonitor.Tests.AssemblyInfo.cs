@@ -10,12 +10,12 @@
 using System;
 using System.Reflection;
 
-[assembly: System.Reflection.AssemblyCompanyAttribute("SystemUtilizationMonitor")]
+[assembly: System.Reflection.AssemblyCompanyAttribute("SystemUtilizationMonitor.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
 [assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b4a8d4403e3a6018a88e89e9c141f07dfe256e3a")]
-[assembly: System.Reflection.AssemblyProductAttribute("SystemUtilizationMonitor")]
-[assembly: System.Reflection.AssemblyTitleAttribute("SystemUtilizationMonitor")]
+[assembly: System.Reflection.AssemblyProductAttribute("SystemUtilizationMonitor.Tests")]
+[assembly: System.Reflection.AssemblyTitleAttribute("SystemUtilizationMonitor.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
 [assembly: System.Runtime.Versioning.TargetPlatformAttribute("Windows7.0")]
 [assembly: System.Runtime.Versioning.SupportedOSPlatformAttribute("Windows7.0")]

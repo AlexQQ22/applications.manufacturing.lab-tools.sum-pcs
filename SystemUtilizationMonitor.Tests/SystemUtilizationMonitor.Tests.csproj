@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -30,7 +30,6 @@
     </PackageReference>
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Windows.Forms" Version="6.0.0" />
     <PackageReference Include="coverlet.collector" Version="6.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -38,24 +37,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SystemUtilizationMonitor\SystemUtilizationMonitor.csproj" />
+    <ProjectReference Include="..\PPV\SystemUtilizationMonitor\SystemUtilizationMonitor.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="unitTest.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <Folder Include="TestData\" />
     <Folder Include="Properties\" />
   </ItemGroup>
 
-  <!-- Test Run Parameters -->
-  <ItemGroup>
-    <None Include="runsettings.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
 
   <!-- Include test configuration files -->
   <ItemGroup>

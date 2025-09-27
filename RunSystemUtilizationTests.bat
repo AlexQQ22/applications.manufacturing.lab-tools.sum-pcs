@@ -332,23 +332,11 @@ set "TEST_TRX=%RESULTS_DIR%\Test_%CSV_NAME%_%TIMESTAMP%.trx"
 REM Run the test with timeout
 echo   Running test for %CSV_NAME%...
 
-REM Create a temporary batch file to run the test with timeout
-set "TEMP_BAT=%TEMP%\run_test_%RANDOM%.bat"
-echo @echo off > "%TEMP_BAT%"
-echo dotnet test "%PROJECT_PATH%" --configuration %BUILD_CONFIG% --logger "trx;LogFileName=%TEST_TRX%" --results-directory "%RESULTS_DIR%" --filter "FullyQualifiedName~ValidateSystemUtilizationData_CsvVsJson_ShouldMatch" --verbosity normal -- "TestRunParameters.Parameter(name=\"CsvFilePath\",value=\"%CSV_FILE%\")" ^> "%TEST_LOG%" 2^>^&1 >> "%TEMP_BAT%"
-
-REM Run with timeout (5 minutes)
-timeout 300 "%TEMP_BAT%" >nul 2>&1
+REM Run the test directly without timeout complications
+dotnet test "%PROJECT_PATH%" --configuration %BUILD_CONFIG% --logger "trx;LogFileName=%TEST_TRX%" --results-directory "%RESULTS_DIR%" --filter "FullyQualifiedName~ValidateSystemUtilizationData_CsvVsJson_ShouldMatch" --verbosity normal -- "TestRunParameters.Parameter(name=\"CsvFilePath\",value=\"%CSV_FILE%\")" > "%TEST_LOG%" 2>&1
 set "TEST_EXIT_CODE=%ERRORLEVEL%"
 
-REM Clean up temp file
-if exist "%TEMP_BAT%" del "%TEMP_BAT%" 2>nul
-
-if %TEST_EXIT_CODE% equ 124 (
-    echo   TIMEOUT: %CSV_NAME% (test exceeded 5 minutes)
-    set /a ERROR_TESTS+=1
-    echo TIMEOUT: %CSV_NAME% - %DATE% %TIME% >> "%TEST_RESULTS%"
-) else if %TEST_EXIT_CODE% neq 0 (
+if %TEST_EXIT_CODE% neq 0 (
     echo   FAILED: %CSV_NAME%
     set /a FAILED_TESTS+=1
     echo FAILED: %CSV_NAME% - %DATE% %TIME% >> "%TEST_RESULTS%"

@@ -1,0 +1,6 @@
+C:\Users\aquesad1\OneDrive - Intel Corporation\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitor.Tests\obj\Release\net6.0-windows\SystemUtilizationMonitor.Tests.csproj.AssemblyReference.cache
+C:\Users\aquesad1\OneDrive - Intel Corporation\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitor.Tests\obj\Release\net6.0-windows\SystemUtilizationMonitor.Tests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\aquesad1\OneDrive - Intel Corporation\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitor.Tests\obj\Release\net6.0-windows\SystemUtilizationMonitor.Tests.AssemblyInfoInputs.cache
+C:\Users\aquesad1\OneDrive - Intel Corporation\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitor.Tests\obj\Release\net6.0-windows\SystemUtilizationMonitor.Tests.AssemblyInfo.cs
+C:\Users\aquesad1\OneDrive - Intel Corporation\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitor.Tests\obj\Release\net6.0-windows\SystemUtilizationMonitor.Tests.csproj.CoreCompileInputs.cache
+C:\Users\aquesad1\OneDrive - Intel Corporation\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitor.Tests\obj\Release\net6.0-windows\SystemUtilizationMonitor.Tests.sourcelink.json

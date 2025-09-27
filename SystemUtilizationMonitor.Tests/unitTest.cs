@@ -12,6 +12,24 @@ using SystemUtilizationMonitor.Utilities;
 
 namespace SystemUtilizationMonitor.Tests
 {
+    public class CsvDataRecord
+    {
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public string MachineName { get; set; } = string.Empty;
+        public string Product { get; set; } = string.Empty;
+        public int MouseEvents { get; set; }
+        public int KeyboardEvents { get; set; }
+        public string FileChanges { get; set; } = string.Empty;
+    }
+
+    public class FileInfo
+    {
+        public string ProductId { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
+        public string OriginalFileName { get; set; } = string.Empty;
+    }
+
     public class EnhancedSystemUtilizationTests : IAsyncLifetime
     {
         private readonly ITestOutputHelper _output;
