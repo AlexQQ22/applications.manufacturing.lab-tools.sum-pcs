@@ -91,6 +91,7 @@ namespace SystemUtilizationMonitor
             }
         }
 
+
         /// <summary>
         /// Bucle principal de monitoreo del sistema
         /// </summary>
@@ -114,12 +115,12 @@ namespace SystemUtilizationMonitor
                 // Actualizar tiempo de última detección de VM conectada
                 UpdateVmConnectionDetectionTime(vmConnectExists);
 
-                // 2. Procesar cierres pendientes primero
+                // 2. Procesar cierres pendientes primero (ahora actualiza lastVmConnectedDetection)
                 ProcessPendingVmKills();
 
                 // 3. Verificar si han pasado los minutos de timeout desde la PRIMERA detección de conexión VM
                 // Y vmconnect aún existe
-                if (vmConnectExists && ShouldScheduleVmClose())
+                if (vmConnectExists && ShouldScheduleVmClose(lastVmConnectedDetection))
                 {
                     ScheduleVmCloseAndKill();
                 }
@@ -225,9 +226,9 @@ namespace SystemUtilizationMonitor
             {
                 if (vmMonitor != null)
                 {
-                    // Ejecutar de forma síncrona para mantener el flujo del bucle principal
-                    var task = Task.Run(() => vmMonitor.ProcessPendingKillsAsync());
-                    task.GetAwaiter().GetResult();
+                    // Ejecutar de forma síncrona y capturar el valor actualizado
+                    var task = Task.Run(() => vmMonitor.ProcessPendingKillsAsync(lastVmConnectedDetection));
+                    lastVmConnectedDetection = task.GetAwaiter().GetResult();
                     LogInfo("Cierres pendientes procesados");
                 }
                 else
@@ -241,11 +242,12 @@ namespace SystemUtilizationMonitor
             }
         }
 
+
         /// <summary>
         /// Verifica si debe programarse el cierre de VMs
         /// </summary>
         /// <returns>True si debe programarse el cierre</returns>
-        private static bool ShouldScheduleVmClose()
+        private static bool ShouldScheduleVmClose(DateTime lastVmConnectedDetection)
         {
             if (vmMonitor == null)
             {
@@ -524,7 +526,7 @@ namespace SystemUtilizationMonitor
         {
             try
             {
-                var json = CustomJsonSerializer.Serialize(timeFrame); 
+                var json = CustomJsonSerializer.Serialize(timeFrame);
                 File.AppendAllText(fileName, json + Environment.NewLine);
             }
             catch (Exception ex)

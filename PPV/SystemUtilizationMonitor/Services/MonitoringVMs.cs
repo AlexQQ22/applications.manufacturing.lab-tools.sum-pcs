@@ -23,11 +23,11 @@ namespace SystemUtilizationMonitor.Services
         private const string PSEXEC_PATH = @"c:\SUMInstall\PsExec64.exe";
         private const string KILLING_PENDINGS_FILE = @"C:\SUMInstall\KillingPendings.txt";
         private const string SUM_VERSION_FILE = @"C:\SUMInstall\Rev.txt";
-        
+
         // Timeouts en minutos
-        private const int VM_TIMEOUT_MINUTES = 40;
-        private const int KILL_DELAY_MINUTES = 5;
-        
+        private const int VM_TIMEOUT_MINUTES = 2;
+        private const int KILL_DELAY_MINUTES = 1;
+
         // Rango de IPs de las VMs (10.0.0.1 a 10.0.0.4)
         private const int MIN_VM_IP = 1;
         private const int MAX_VM_IP = 4;
@@ -54,7 +54,7 @@ namespace SystemUtilizationMonitor.Services
             this.config = config;
             this.logInfo = logInfo ?? Console.WriteLine;
             this.logError = logError ?? Console.WriteLine;
-            
+
             // Usar valores de configuración que ya tienen valores por defecto en el constructor
             username = config?.VM?.Username ?? "cc3user";
             password = config?.VM?.Password ?? "sthi";
@@ -94,7 +94,7 @@ namespace SystemUtilizationMonitor.Services
                 if (await PingVMAsync(ipvm))
                 {
                     logInfo($"VM {ipvm} está accesible, verificando uso...");
-                    
+
                     // Copiar archivo de monitoreo si no existe
                     await EnsureMonitoringFileExistsAsync(ipvm);
 
@@ -127,18 +127,18 @@ namespace SystemUtilizationMonitor.Services
             {
                 var vmConnectProcesses = Process.GetProcessesByName("vmconnect");
                 bool hasProcesses = vmConnectProcesses.Any();
-                
+
                 if (hasProcesses)
                 {
                     logInfo($"Encontrados {vmConnectProcesses.Length} procesos vmconnect");
                 }
-                
+
                 // Liberar recursos de los procesos
                 foreach (var process in vmConnectProcesses)
                 {
                     process.Dispose();
                 }
-                
+
                 return hasProcesses;
             }
             catch (Exception ex)
@@ -151,14 +151,15 @@ namespace SystemUtilizationMonitor.Services
         /// <summary>
         /// Procesa las tareas de cierre pendientes de VMs
         /// </summary>
-        public async Task ProcessPendingKillsAsync()
+        /// <returns>DateTime actualizado de lastVmConnectedDetection</returns>
+        public async Task<DateTime> ProcessPendingKillsAsync(DateTime lastVmConnectedDetection)
         {
             try
             {
                 if (!File.Exists(KILLING_PENDINGS_FILE))
                 {
                     logInfo("No hay archivo de cierres pendientes");
-                    return;
+                    return lastVmConnectedDetection;
                 }
 
                 List<string> remainingLines = new List<string>();
@@ -186,16 +187,17 @@ namespace SystemUtilizationMonitor.Services
                                 logInfo($"Procesando cierre vencido: {line}");
 
                                 // Verificar actividad de usuario antes de cerrar
-                                if (!await CheckVMUserActivityAsync())
+                                var activityCheckResult = await CheckVMUserActivityAsync(lastVmConnectedDetection);
+                                if (!activityCheckResult.hasActivity)
                                 {
-                                    await KillVmConnectProcessesAsync();
+                                    lastVmConnectedDetection = await KillVmConnectProcessesAsync(lastVmConnectedDetection);
                                     killExecuted = true;
                                     logInfo("Cierre de VM ejecutado - no se detectó actividad de usuario");
                                 }
                                 else
                                 {
                                     logInfo("Cierre de VM omitido - se detectó actividad de usuario");
-                                    remainingLines.Add(line);
+                                    lastVmConnectedDetection = activityCheckResult.updatedDetectionTime;
                                 }
                             }
                             else
@@ -217,10 +219,13 @@ namespace SystemUtilizationMonitor.Services
 
                 // Actualizar archivo de pendientes
                 UpdatePendingKillsFile(remainingLines, killExecuted, lines.Length);
+
+                return lastVmConnectedDetection;
             }
             catch (Exception ex)
             {
                 logError($"Error procesando cierres pendientes: {ex.Message}");
+                return lastVmConnectedDetection;
             }
         }
 
@@ -276,24 +281,25 @@ namespace SystemUtilizationMonitor.Services
                 logInfo("lastVmConnectedDetection es MinValue");
                 return false;
             }
-            
+
             var timeSinceLastDetection = DateTime.UtcNow - lastVmConnectedDetection;
             bool shouldSchedule = timeSinceLastDetection.TotalMinutes >= VM_TIMEOUT_MINUTES;
-            
+
             logInfo($"Tiempo desde última detección: {timeSinceLastDetection.TotalMinutes:F1} minutos. " +
                    $"¿Debe programar cierre? {shouldSchedule}");
-            
+
             return shouldSchedule;
         }
         #endregion
 
         #region Métodos Privados - Verificación de Actividad
 
+
         /// <summary>
         /// Verifica si hay actividad de usuario en alguna de las VMs
         /// </summary>
-        /// <returns>True si hay actividad de usuario</returns>
-        private async Task<bool> CheckVMUserActivityAsync()
+        /// <returns>Tupla con hasActivity y updatedDetectionTime</returns>
+        private async Task<(bool hasActivity, DateTime updatedDetectionTime)> CheckVMUserActivityAsync(DateTime lastVmConnectedDetection)
         {
             try
             {
@@ -303,28 +309,30 @@ namespace SystemUtilizationMonitor.Services
 
                     if (await PingVMAsync(ipvm))
                     {
-                        if (await CheckUserActivityOnVMAsync(ipvm))
+                        var result = await CheckUserActivityOnVMAsync(ipvm, lastVmConnectedDetection);
+                        if (result.hasActivity)
                         {
-                            return true;
+                            return result;
                         }
                     }
                 }
 
-                return false;
+                return (false, lastVmConnectedDetection);
             }
             catch (Exception ex)
             {
                 logError($"Error verificando actividad de usuario en VMs: {ex.Message}");
-                return false;
+                return (false, lastVmConnectedDetection);
             }
         }
+
 
         /// <summary>
         /// Verifica actividad de usuario en una VM específica
         /// </summary>
         /// <param name="ipvm">IP de la VM a verificar</param>
-        /// <returns>True si hay actividad de usuario en la VM</returns>
-        private async Task<bool> CheckUserActivityOnVMAsync(string ipvm)
+        /// <returns>Tupla con hasActivity y updatedDetectionTime</returns>
+        private async Task<(bool hasActivity, DateTime updatedDetectionTime)> CheckUserActivityOnVMAsync(string ipvm, DateTime lastVmConnectedDetection)
         {
             try
             {
@@ -338,46 +346,54 @@ namespace SystemUtilizationMonitor.Services
                     if (content.IndexOf("yes", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         logInfo($"Actividad de usuario detectada en VM {ipvm}");
-                        
+
                         // Limpiar archivos de actividad y pendientes
-                        await CleanupActivityFilesAsync(remoteActivityFile);
-                        
-                        return true;
+                        DateTime updatedTime = await CleanupActivityFilesAsync(remoteActivityFile, lastVmConnectedDetection);
+
+                        return (true, updatedTime);
                     }
                 }
 
-                return false;
+                return (false, lastVmConnectedDetection);
             }
             catch (Exception ex)
             {
                 logError($"Error verificando actividad de usuario en VM {ipvm}: {ex.Message}");
-                return false;
+                return (false, lastVmConnectedDetection);
             }
         }
+
+
 
         /// <summary>
         /// Limpia los archivos de actividad después de detectar actividad de usuario
         /// </summary>
         /// <param name="remoteActivityFile">Archivo de actividad remoto a limpiar</param>
-        private async Task CleanupActivityFilesAsync(string remoteActivityFile)
+        /// <returns>DateTime actualizado</returns>
+        private async Task<DateTime> CleanupActivityFilesAsync(string remoteActivityFile, DateTime lastVmConnectedDetection)
         {
             try
             {
                 // Limpiar archivo de actividad
                 File.WriteAllText(remoteActivityFile, "");
-                
+                DateTime updatedTime = DateTime.UtcNow;
+
                 // Limpiar archivo de cierres pendientes
                 if (File.Exists(KILLING_PENDINGS_FILE))
                 {
                     File.WriteAllText(KILLING_PENDINGS_FILE, "");
                     logInfo("Archivos de actividad y pendientes limpiados");
                 }
+
+                return updatedTime;
             }
             catch (Exception ex)
             {
                 logError($"Error limpiando archivos de actividad: {ex.Message}");
+                return lastVmConnectedDetection;
             }
         }
+
         #endregion
 
         #region Métodos Privados - Operaciones de Red
@@ -562,10 +578,10 @@ namespace SystemUtilizationMonitor.Services
                 if (await PingVMAsync(ipAddress, 1000))
                 {
                     logInfo($"VM {ipAddress} es accesible, ejecutando script de cierre");
-                    
+
                     // Asegurar que los archivos necesarios existan
                     await EnsureCloseScriptsExistAsync(ipAddress);
-                    
+
                     // Ejecutar script de cierre con popup
                     await ExecuteRemoteCloseScriptAsync(ipAddress);
                 }
@@ -669,10 +685,12 @@ namespace SystemUtilizationMonitor.Services
 
         #region Métodos Privados - Terminación de Procesos
 
+
         /// <summary>
         /// Termina todos los procesos vmconnect y cierra conexiones VNC
         /// </summary>
-        private async Task KillVmConnectProcessesAsync()
+        /// <returns>DateTime actualizado</returns>
+        private async Task<DateTime> KillVmConnectProcessesAsync(DateTime lastVmConnectedDetection)
         {
             try
             {
@@ -681,6 +699,7 @@ namespace SystemUtilizationMonitor.Services
 
                 // Luego terminar procesos vmconnect locales
                 await TerminateLocalVmConnectProcessesAsync();
+                DateTime updatedTime = DateTime.UtcNow;
 
                 // Limpiar archivo de pendientes
                 if (File.Exists(KILLING_PENDINGS_FILE))
@@ -688,10 +707,13 @@ namespace SystemUtilizationMonitor.Services
                     File.WriteAllText(KILLING_PENDINGS_FILE, "");
                     logInfo("Archivo de cierres pendientes limpiado");
                 }
+
+                return updatedTime;
             }
             catch (Exception ex)
             {
                 logError($"Error terminando procesos vmconnect: {ex.Message}");
+                return lastVmConnectedDetection;
             }
         }
 
@@ -734,7 +756,7 @@ namespace SystemUtilizationMonitor.Services
                     using (Process process = Process.Start(startInfo))
                     {
                         process.WaitForExit(1000);
-                        
+
                         string output = process.StandardOutput.ReadToEnd();
                         string errors = process.StandardError.ReadToEnd();
 
