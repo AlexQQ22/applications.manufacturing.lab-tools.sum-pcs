@@ -295,6 +295,221 @@ namespace SystemUtilizationMonitor
 
         #region Métodos de Recopilación de Datos
 
+        private static string GetProductPartNumber()
+        {
+            try
+            {
+                LogInfo("Starting enhanced product detection logic...");
+
+                string hdmxPath = @"D:\HDMT3\HdmtOutputFiles";
+                if (Directory.Exists(hdmxPath))
+                {
+                    LogInfo("HDMX machine detected - checking TesterHwConfig.xml");
+                    string product = GetProductFromHDMX(hdmxPath);
+                    if (!string.IsNullOrEmpty(product))
+                    {
+                        LogInfo($"Successfully retrieved product from HDMX: {product}");
+                        return product;
+                    }
+                    LogInfo("HDMX path exists but no product found, falling back to HST methods");
+                }
+                else
+                {
+                    LogInfo("HDMX path not found, assuming HST machine");
+                }
+
+                string hstMethod1Product = GetProductFromHSTMethod1();
+                if (!string.IsNullOrEmpty(hstMethod1Product))
+                {
+                    LogInfo($"Successfully retrieved product from HST Method 1: {hstMethod1Product}");
+                    return hstMethod1Product;
+                }
+
+                string hstMethod2Product = GetProductFromHSTMethod2();
+                if (!string.IsNullOrEmpty(hstMethod2Product))
+                {
+                    LogInfo($"Successfully retrieved product from HST Method 2: {hstMethod2Product}");
+                    return hstMethod2Product;
+                }
+
+                LogError("All product detection methods failed");
+                return "PRODUCT_NOT_FOUND";
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error in GetProductPartNumber: {ex.Message}");
+                return "ERROR_GETTING_PRODUCT";
+            }
+        }
+        private static string GetProductFromHDMX2(string hdmxPath)
+        {
+            try
+            {
+                string configFilePath = Path.Combine(hdmxPath, "TesterHwConfig.xml");
+                if (!File.Exists(configFilePath))
+                {
+                    LogInfo($"TesterHwConfig.xml not found at: {configFilePath}");
+                    return "";
+                }
+
+                LogInfo($"Reading TesterHwConfig.xml from: {configFilePath}");
+                string xmlContent = File.ReadAllText(configFilePath);
+
+                // Nuevo regex para buscar DUTSocketSerialNumber0
+                var dutSocketSerialRegex = new System.Text.RegularExpressions.Regex(
+                    @"<SupplementalData\s+Name=""DUTSocketSerialNumber0""\s+Value=""([^""]+)""",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
+                );
+
+                var match = dutSocketSerialRegex.Match(xmlContent);
+                if (match.Success)
+                {
+                    string dutSerialNumber = match.Groups[1].Value.Trim();
+                    LogInfo($"Found DUTSocketSerialNumber0 in HDMX config: {dutSerialNumber}");
+                    return dutSerialNumber;
+                }
+                else
+                {
+                    LogInfo("DUTSocketSerialNumber0 pattern not found in TesterHwConfig.xml");
+                    return "";
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error reading HDMX config: {ex.Message}");
+                return "";
+            }
+        }
+        private static string GetProductFromHDMX(string hdmxPath)
+        {
+           try
+           {
+               string configFilePath = Path.Combine(hdmxPath, "TesterHwConfig.xml");
+
+               if (!File.Exists(configFilePath))
+               {
+                   LogInfo($"TesterHwConfig.xml not found at: {configFilePath}");
+                   return "";
+               }
+
+               LogInfo($"Reading TesterHwConfig.xml from: {configFilePath}");
+
+               string xmlContent = File.ReadAllText(configFilePath);
+
+               var tiuSerialNumberRegex = new System.Text.RegularExpressions.Regex(
+                   @"BoardName=""TIUEEPROM1""[^>]*SerialNumber=""([^""]+)""",
+                   System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
+               );
+
+               var match = tiuSerialNumberRegex.Match(xmlContent);
+               if (match.Success) // && match.in(json_config_product_dictionary)
+               {
+                   string serialNumber = match.Groups[1].Value.Trim();
+
+                   LogInfo($"Found TIU SerialNumber in HDMX config: {serialNumber}");
+                   return serialNumber;
+               }
+               else
+               {
+                  // try GetProductFromHDMX2, if also fails then:
+                   LogInfo("TIU SerialNumber pattern not found in TesterHwConfig.xml");
+                   return "";
+               }
+           }
+           catch (Exception ex)
+           {
+               LogError($"Error reading HDMX config: {ex.Message}");
+               return "";
+           }
+        }
+
+        private static string GetProductFromHSTMethod1()
+        {
+            try
+            {
+                string hstCachePath = @"c:\hst\tpcache\o\D7";
+
+                if (!Directory.Exists(hstCachePath))
+                {
+                    LogInfo($"HST cache path not found: {hstCachePath}");
+                    return "";
+                }
+
+                LogInfo($"Checking HST cache path: {hstCachePath}");
+
+                string[] firstLevelDirs = Directory.GetDirectories(hstCachePath);
+
+                if (firstLevelDirs.Length == 0)
+                {
+                    LogInfo("No directories found in HST cache D7 folder");
+                    return "";
+                }
+
+                string firstDir = firstLevelDirs[0];
+                LogInfo($"Found first level directory: {Path.GetFileName(firstDir)}");
+
+                string[] secondLevelDirs = Directory.GetDirectories(firstDir);
+
+                if (secondLevelDirs.Length == 0)
+                {
+                    LogInfo("No second level directories found in HST cache");
+                    return "";
+                }
+
+                string secondDir = secondLevelDirs[0];
+                string productName = Path.GetFileName(secondDir);
+
+                LogInfo($"Found second level directory (product): {productName}");
+                return productName;
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error in HST Method 1: {ex.Message}");
+                return "";
+            }
+        }
+
+        private static string GetProductFromHSTMethod2()
+        {
+            try
+            {
+                string hstLoopsPath = @"D:\HST\TP_ENG_Loops\TP";
+
+                if (!Directory.Exists(hstLoopsPath))
+                {
+                    LogInfo($"HST loops path not found: {hstLoopsPath}");
+                    return "";
+                }
+
+                LogInfo($"Checking HST loops path: {hstLoopsPath}");
+
+                string[] zipFiles = Directory.GetFiles(hstLoopsPath, "*.zip");
+
+                if (zipFiles.Length == 0)
+                {
+                    LogInfo("No ZIP files found in HST loops directory");
+                    return "";
+                }
+
+                LogInfo($"Found {zipFiles.Length} ZIP files in HST loops directory");
+
+                Array.Sort(zipFiles, (x, y) => File.GetLastWriteTime(y).CompareTo(File.GetLastWriteTime(x)));
+
+                string mostRecentZip = zipFiles[0];
+                string productName = Path.GetFileNameWithoutExtension(mostRecentZip);
+
+                LogInfo($"Most recent ZIP file: {Path.GetFileName(mostRecentZip)}");
+                LogInfo($"Product name from ZIP: {productName}");
+
+                return productName;
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error in HST Method 2: {ex.Message}");
+                return "";
+            }
+        }
+
         /// <summary>
         /// Recopila datos de utilización del sistema para el período especificado
         /// </summary>
@@ -307,7 +522,8 @@ namespace SystemUtilizationMonitor
             {
                 StartTime = startTime,
                 EndTime = endTime,
-                MachineName = Environment.MachineName
+                MachineName = Environment.MachineName,
+                Product = GetProductPartNumber()
             };
 
             // Recopilar eventos de entrada (mouse y teclado)
