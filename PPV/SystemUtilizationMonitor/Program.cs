@@ -144,7 +144,7 @@ namespace SystemUtilizationMonitor
                 LogInfo("Ciclo de 5 minutos completado");
 
                 // Recopilar datos de utilización del sistema
-                var timeFrame = CollectUtilizationData(startTime, endTime);
+                var timeFrame = CollectUtilizationData(startTime, endTime, vmConnectExists);
                 lastEndTime = endTime;
                 WriteToFile(currentOutputFile, timeFrame);
             }
@@ -516,7 +516,7 @@ namespace SystemUtilizationMonitor
         /// <param name="startTime">Tiempo de inicio del período</param>
         /// <param name="endTime">Tiempo de fin del período</param>
         /// <returns>Objeto UtilizationTimeFrame con los datos recopilados</returns>
-        private static UtilizationTimeFrame CollectUtilizationData(DateTime startTime, DateTime endTime)
+        private static UtilizationTimeFrame CollectUtilizationData(DateTime startTime, DateTime endTime, bool vmInUse )
         {
             var timeFrame = new UtilizationTimeFrame
             {
@@ -534,7 +534,7 @@ namespace SystemUtilizationMonitor
             }
 
             // Verificar uso de VMs
-            bool vmInUse = CheckVmsInUse();
+            //bool vmInUse = CheckVmsInUse();
 
             // Decidir si monitorear archivos basado en el uso de VMs
             if (vmInUse)
@@ -542,11 +542,15 @@ namespace SystemUtilizationMonitor
                 timeFrame.FileChanges = "VMs In Use By VMC or hyperV";
                 LogInfo("INFO: VMs detectadas en uso, omitiendo monitoreo de archivos");
             }
-            else
-            {
-                timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
-                LogInfo("INFO: No hay VMs en uso o verificación de VM falló, procediendo con monitoreo de archivos");
-            }
+            //else
+            //{
+            //    timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
+            //    LogInfo("INFO: No hay VMs en uso o verificación de VM falló, procediendo con monitoreo de archivos");
+            //}
+
+
+            timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
+            LogInfo("INFO: No hay VMs en uso o verificación de VM falló, procediendo con monitoreo de archivos");
 
             return timeFrame;
         }
