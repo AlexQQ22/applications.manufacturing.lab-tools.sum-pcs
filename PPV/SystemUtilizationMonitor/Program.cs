@@ -111,6 +111,7 @@ namespace SystemUtilizationMonitor
 
                 // 1. Verificar si existen instancias de vmconnect
                 bool vmConnectExists = CheckVmConnectProcesses();
+                LogInfo($"Veri VM Alex: {vmConnectExists}");
 
                 // Actualizar tiempo de última detección de VM conectada
                 UpdateVmConnectionDetectionTime(vmConnectExists);
@@ -120,7 +121,9 @@ namespace SystemUtilizationMonitor
 
                 // 3. Verificar si han pasado los minutos de timeout desde la PRIMERA detección de conexión VM
                 // Y vmconnect aún existe
-                if (vmConnectExists && ShouldScheduleVmClose(lastVmConnectedDetection))
+                bool shouldScheduleVmClose = ShouldScheduleVmClose(lastVmConnectedDetection);
+                LogInfo($"shouldScheduleVmClose VM Alex: {vmConnectExists}");
+                if (vmConnectExists && shouldScheduleVmClose)
                 {
                     ScheduleVmCloseAndKill();
                 }
@@ -215,6 +218,7 @@ namespace SystemUtilizationMonitor
                     lastVmConnectedDetection = DateTime.MinValue;
                 }
             }
+            LogInfo("No hay VMs abiertas ni temportizador a resetear");
         }
 
         /// <summary>
@@ -272,6 +276,7 @@ namespace SystemUtilizationMonitor
                     {
                         try
                         {
+                            LogInfo("await vmMonitor.ScheduleVmCloseAndKillAsync()");
                             await vmMonitor.ScheduleVmCloseAndKillAsync();
                         }
                         catch (Exception ex)
@@ -382,45 +387,45 @@ namespace SystemUtilizationMonitor
         }
         private static string GetProductFromHDMX(string hdmxPath)
         {
-           try
-           {
-               string configFilePath = Path.Combine(hdmxPath, "TesterHwConfig.xml");
+            try
+            {
+                string configFilePath = Path.Combine(hdmxPath, "TesterHwConfig.xml");
 
-               if (!File.Exists(configFilePath))
-               {
-                   LogInfo($"TesterHwConfig.xml not found at: {configFilePath}");
-                   return "";
-               }
+                if (!File.Exists(configFilePath))
+                {
+                    LogInfo($"TesterHwConfig.xml not found at: {configFilePath}");
+                    return "";
+                }
 
-               LogInfo($"Reading TesterHwConfig.xml from: {configFilePath}");
+                LogInfo($"Reading TesterHwConfig.xml from: {configFilePath}");
 
-               string xmlContent = File.ReadAllText(configFilePath);
+                string xmlContent = File.ReadAllText(configFilePath);
 
-               var tiuSerialNumberRegex = new System.Text.RegularExpressions.Regex(
-                   @"BoardName=""TIUEEPROM1""[^>]*SerialNumber=""([^""]+)""",
-                   System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
-               );
+                var tiuSerialNumberRegex = new System.Text.RegularExpressions.Regex(
+                    @"BoardName=""TIUEEPROM1""[^>]*SerialNumber=""([^""]+)""",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
+                );
 
-               var match = tiuSerialNumberRegex.Match(xmlContent);
-               if (match.Success) // && match.in(json_config_product_dictionary)
-               {
-                   string serialNumber = match.Groups[1].Value.Trim();
+                var match = tiuSerialNumberRegex.Match(xmlContent);
+                if (match.Success) // && match.in(json_config_product_dictionary)
+                {
+                    string serialNumber = match.Groups[1].Value.Trim();
 
-                   LogInfo($"Found TIU SerialNumber in HDMX config: {serialNumber}");
-                   return serialNumber;
-               }
-               else
-               {
-                  // try GetProductFromHDMX2, if also fails then:
-                   LogInfo("TIU SerialNumber pattern not found in TesterHwConfig.xml");
-                   return "";
-               }
-           }
-           catch (Exception ex)
-           {
-               LogError($"Error reading HDMX config: {ex.Message}");
-               return "";
-           }
+                    LogInfo($"Found TIU SerialNumber in HDMX config: {serialNumber}");
+                    return serialNumber;
+                }
+                else
+                {
+                    // try GetProductFromHDMX2, if also fails then:
+                    LogInfo("TIU SerialNumber pattern not found in TesterHwConfig.xml");
+                    return "";
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error reading HDMX config: {ex.Message}");
+                return "";
+            }
         }
 
         private static string GetProductFromHSTMethod1()
@@ -516,7 +521,7 @@ namespace SystemUtilizationMonitor
         /// <param name="startTime">Tiempo de inicio del período</param>
         /// <param name="endTime">Tiempo de fin del período</param>
         /// <returns>Objeto UtilizationTimeFrame con los datos recopilados</returns>
-        private static UtilizationTimeFrame CollectUtilizationData(DateTime startTime, DateTime endTime, bool vmInUse )
+        private static UtilizationTimeFrame CollectUtilizationData(DateTime startTime, DateTime endTime, bool vmInUse)
         {
             var timeFrame = new UtilizationTimeFrame
             {
@@ -534,7 +539,7 @@ namespace SystemUtilizationMonitor
             }
 
             // Verificar uso de VMs
-            //bool vmInUse = CheckVmsInUse();
+            // bool vmInUse = CheckVmsInUse();
 
             // Decidir si monitorear archivos basado en el uso de VMs
             if (vmInUse)
@@ -637,15 +642,75 @@ namespace SystemUtilizationMonitor
         /// <param name="configPath">Ruta donde crear el archivo de configuración</param>
         private static void CreateDefaultConfiguration(string configPath)
         {
+
             Directory.CreateDirectory(Path.GetDirectoryName(configPath));
 
-            // Usar el constructor por defecto que ya tiene todos los valores inicializados
-            var defaultConfig = new ConfigurationModel();
+            var defaultConfig = new ConfigurationModel
+            {
+                Jose = new Dictionary<string, MonitorTxtConfig>
+                {
+                    ["montior_txt_priority"] = new MonitorTxtConfig
+                    {
+                        FilePath = "C:\\STHI\\logs\\strut_detail_log_yyyy/MM/dd.txt",
+                        NoContent = "RmqEventsListener",
+                        Skip = "GetStatus;RetrieveHWConfigInfo =;CommandType =;CommandSource =;UniqueCommandId =;SysCClientUniqueCommandId =;SiteId =;AdditionalParameters =;TesterInfo.get_VMImageVersion - VMImageVersion:;TpCache.GetCachedTps - Test package caching is not currently implemented.;NetworkConfigurator.get_IpAddressToSpacialLocation - IP location mapping:;localhost: 1;HwConfig.CollectHwConfig;HwConfig.CreateSocketEntities;HwConfig.parseCMMSList;HwConfig.SerializeXml;xml version=;HWConfiguration;</;/>;<SocketEntity;<TesterExternalEntity;<TesterExternalEntity;<BoardBLT;<TesterCoreEntity;TesterHWConfigAsXMLString",
+                        FormatDate = "yyyy/MM/dd",
+                        LastlineContent = "EventManager.SendEvent - Send SiteInformationEvent Event to Supervisor for command UndefinedSiteCommand, uniqueCommandId 8888888888888888888, SysCClientUniqueCommandId:"
+                    },
+                    ["montior_txt_normal_1"] = new MonitorTxtConfig
+                    {
+                        FilePath = "C:\\Logs\\Aguila\\Sequencer 1\\TraceLog.txt"
+                    },
+                    ["montior_txt_normal_2"] = new MonitorTxtConfig
+                    {
+                        FilePath = "C:\\Logs\\Aguila\\Sequencer 2\\TraceLog.txt"
+                    },
+                    ["montior_txt_normal_3"] = new MonitorTxtConfig
+                    {
+                        FilePath = "C:\\Logs\\Aguila\\Sequencer 3\\TraceLog.txt"
+                    },
+                    ["montior_txt_normal_4"] = new MonitorTxtConfig
+                    {
+                        FilePath = "C:\\Logs\\Aguila\\Sequencer 4\\TraceLog.txt"
+                    }
+                },
+                SumPOR = new SumPORConfig
+                {
+                    ShouldReadLogFiles = true,
+                    Debug = false,
+                    ProductLogPath = @"",
+                    Args = new ArgsConfig
+                    {
+                        RollingInterval = "Day",
+                        RetainedFileCountLimit = 15,
+                        OutputTemplate = "{Message:l}{NewLine}"
+                    }
+                },
+                Mouse = new MouseConfig
+                {
+                    WM_LBUTTONDOWN = 0x0201,
+                    WM_RBUTTONDOWN = 0x0204,
+                    WM_MBUTTONDOWN = 0x0207,
+                    WM_MOUSEMOVE = 0x0200,
+                    WM_MOUSEWHEEL = 0x020A,
+                    MouseMoveThrottleMs = 100
+                },
+                Keyboard = new KeyboardConfig
+                {
+                    WM_KEYDOWN = 0x0100,
+                    WM_SYSKEYDOWN = 0x0104
+                },
+                Hook = new HookConfig
+                {
+                    WH_KEYBOARD_LL = 13,
+                    WH_MOUSE_LL = 14
+                },
+                JsonOutputPath = ""
+            };
 
             string jsonContent = JsonConvert.SerializeObject(defaultConfig, Formatting.Indented);
             File.WriteAllText(configPath, jsonContent);
         }
-
         /// <summary>
         /// Configura el directorio de salida para archivos de monitoreo
         /// </summary>
