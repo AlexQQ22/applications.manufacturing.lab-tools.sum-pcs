@@ -228,8 +228,9 @@ namespace SystemUtilizationMonitor.Services
                                 if (wasUsed)
                                 {
                                     paths_checked = paths_checked + "\n" + pathToRead + " had changes indicating  the tester had activity\n";
-                                    timeFrame.FileChanges = string.Empty;
-                                    timeFrame.FileChanges = pathToRead ;
+                                    //timeFrame.FileChanges = string.Empty;
+                                    //timeFrame.FileChanges = pathToRead ;
+                                    timeFrame.FileChanges += " | " + pathToRead;
 
                                 }
                                 else if (!string.IsNullOrEmpty(dataModelConfigToRead.LastlineContent))
@@ -245,8 +246,9 @@ namespace SystemUtilizationMonitor.Services
                                             {
 
                                                 wasUsed = true;
-                                                timeFrame.FileChanges = string.Empty;
-                                                timeFrame.FileChanges = pathToRead;
+                                                //timeFrame.FileChanges = string.Empty;
+                                                //timeFrame.FileChanges = pathToRead;
+                                                timeFrame.FileChanges += " | " + pathToRead;
                                                 paths_checked = paths_checked + "\n" + pathToRead + " indicated the tester had activity because the last line match with the parameter LastlineContent of the  monitoring configuration. \n";
                                                 Modelstored.LastlineContent = LastlineContent.ToString();
 
@@ -275,8 +277,8 @@ namespace SystemUtilizationMonitor.Services
                                             {
                                                 wasUsed = true;
                                                 paths_checked = paths_checked + "\n" + pathToRead + " indicated the tester had activity because the last line match with the parameter LastlineContent of the  monitoring configuration... \n";
-                                                timeFrame.FileChanges = string.Empty;
-                                                timeFrame.FileChanges = pathToRead;
+                                                //timeFrame.FileChanges = string.Empty;
+                                                timeFrame.FileChanges += " | " + pathToRead;
 
                                             }
                                         }

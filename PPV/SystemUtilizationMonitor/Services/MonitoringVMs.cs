@@ -22,11 +22,11 @@ namespace SystemUtilizationMonitor.Services
         private const string VM_CLOSE_VNC_BAT_SOURCE = @"C:\SUMInstall\VM_Close_VNC.bat";
         private const string PSEXEC_PATH = @"c:\SUMInstall\PsExec64.exe";
         private const string KILLING_PENDINGS_FILE = @"C:\SUMInstall\KillingPendings.txt";
-        private const string SUM_VERSION_FILE = @"C:\SUMInstall\Rev.txt";
+
 
         // Timeouts en minutos
-        private const int VM_TIMEOUT_MINUTES = 2;
-        private const int KILL_DELAY_MINUTES = 1;
+        private const int VM_TIMEOUT_MINUTES = 60;
+        private const int KILL_DELAY_MINUTES = 5;
 
         // Rango de IPs de las VMs (10.0.0.1 a 10.0.0.4)
         private const int MIN_VM_IP = 1;
