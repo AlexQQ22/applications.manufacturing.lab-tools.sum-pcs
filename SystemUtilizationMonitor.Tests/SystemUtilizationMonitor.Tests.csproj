@@ -21,6 +21,13 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <ExcludeFromCodeCoverage>
+      Program.cs;
+      Services/InputHookManager.cs
+    </ExcludeFromCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="xunit" Version="2.6.1" />

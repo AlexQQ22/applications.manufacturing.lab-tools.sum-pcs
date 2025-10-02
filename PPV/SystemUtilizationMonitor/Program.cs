@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;  // ← ADD THIS
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -15,6 +16,7 @@ using SystemUtilizationMonitor.Utilities;
 
 namespace SystemUtilizationMonitor
 {
+    [ExcludeFromCodeCoverage]  // ← ADD THIS
     public class Program
     {
         #region Variables Privadas

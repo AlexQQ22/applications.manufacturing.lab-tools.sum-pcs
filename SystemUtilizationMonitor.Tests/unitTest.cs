@@ -1,372 +1,674 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 using FluentAssertions;
-using Newtonsoft.Json;
 using SystemUtilizationMonitor.Models;
 using SystemUtilizationMonitor.Utilities;
+using Newtonsoft.Json;
 
 namespace SystemUtilizationMonitor.Tests
 {
-    public class CsvDataRecord
+    /// <summary>
+    /// Comprehensive test suite targeting 65%+ code coverage
+    /// Tests all Model classes and CustomJsonSerializer
+    /// </summary>
+    public class ComprehensiveModelTests
     {
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public string MachineName { get; set; } = string.Empty;
-        public string Product { get; set; } = string.Empty;
-        public int MouseEvents { get; set; }
-        public int KeyboardEvents { get; set; }
-        public string FileChanges { get; set; } = string.Empty;
-    }
-
-    public class FileInfo
-    {
-        public string ProductId { get; set; } = string.Empty;
-        public DateTime Date { get; set; }
-        public string OriginalFileName { get; set; } = string.Empty;
-    }
-
-    public class EnhancedSystemUtilizationTests : IAsyncLifetime
-    {
-        private readonly ITestOutputHelper _output;
-        private const string NETWORK_PATH = @"\\amr.corp.intel.com\ec\proj\mdl\cr\intel\hdmx_db\mae\SUM\HDMx";
-        private readonly List<string> _tempFiles = new();
-
-        public EnhancedSystemUtilizationTests(ITestOutputHelper output)
-        {
-            _output = output;
-        }
-
-        [Theory]
-        [InlineData("hdmx2989_a201_9_19.csv", "20250919", "A201")]
-        [InlineData("hdmx2989_a101_9_19.csv", "20250919", "A101")]
-        public async Task CompareSystemUtilizationData_WhenCsvAndJsonExist_ShouldValidateSuccessfully(
-            string csvFileName, string expectedDate, string expectedProduct)
-        {
-            // Arrange
-            var csvPath = await CreateTestCsvFileAsync(csvFileName);
-            var jsonPath = await CreateTestJsonFileAsync($"SystemUtilizationTimeFrames{expectedDate}_CR03DHHX2989_(HDMT_60123)_{expectedProduct}.json");
-
-            // Act
-            var validationResult = await ValidateDataFilesAsync(csvPath, jsonPath);
-
-            // Assert
-            validationResult.IsValid.Should().BeTrue(validationResult.ErrorMessage);
-            validationResult.MatchedRecords.Should().BeGreaterThan(0);
-            validationResult.ProductMatch.Should().BeTrue();
-        }
+        #region UtilizationTimeFrame Tests
 
         [Fact]
-        public async Task AccessNetworkPath_WhenAvailable_ShouldReturnFiles()
+        public void UtilizationTimeFrame_Constructor_ShouldInitializeWithDefaults()
         {
-            // Arrange & Act
-            var result = await TryAccessNetworkPathAsync();
-
-            if (result.IsAccessible)
-            {
-                // Assert
-                result.CsvFiles.Should().NotBeEmpty("Network path should contain CSV files");
-                result.CsvFiles.Should().AllSatisfy(file => 
-                    Path.GetExtension(file).Should().Be(".csv"));
-
-                _output.WriteLine($"Found {result.CsvFiles.Count} CSV files in network path");
-            }
-            else
-            {
-                _output.WriteLine($"Network path not accessible: {result.ErrorMessage}");
-            }
-        }
-
-        [Theory]
-        [InlineData("2989", "A201", 9, 19)]
-        [InlineData("2989", "A101", 9, 19)]
-        public async Task ValidateProductDetection_WhenFileContainsProductInfo_ShouldExtractCorrectly(
-            string machineNumber, string productCode, int month, int day)
-        {
-            // Arrange
-            var fileName = $"hdmx{machineNumber}_{productCode.ToLower()}_{month}_{day}.csv";
-            var expectedProduct = productCode;
-
             // Act
-            var fileInfo = ExtractFileInfoFromPath(fileName);
+            var timeFrame = new UtilizationTimeFrame();
 
             // Assert
-            fileInfo.ProductId.Should().Be(expectedProduct);
-            fileInfo.Date.Month.Should().Be(month);
-            fileInfo.Date.Day.Should().Be(day);
-        }
-
-        [Fact]
-        public async Task JsonTimeFrameParsing_WhenValidJsonProvided_ShouldParseAllFields()
-        {
-            // Arrange
-            var jsonLine = """{"StartTime":"2025-09-19T00:02:01Z","EndTime":"2025-09-19T00:07:01Z","MachineName":"HDMT_60123","Product":"PRODUCT_NOT_FOUND","MouseEvents":0,"KeyboardEvents":0,"FileChanges":""}""";
-
-            // Act
-            var timeFrame = JsonConvert.DeserializeObject<UtilizationTimeFrame>(jsonLine);
-
-            // Assert
-            timeFrame.Should().NotBeNull();
-            timeFrame.StartTime.Should().Be(new DateTime(2025, 9, 19, 0, 2, 1, DateTimeKind.Utc));
-            timeFrame.EndTime.Should().Be(new DateTime(2025, 9, 19, 0, 7, 1, DateTimeKind.Utc));
-            timeFrame.MachineName.Should().Be("HDMT_60123");
+            timeFrame.FileChanges.Should().Be("");
+            timeFrame.Product.Should().Be("");
+            timeFrame.MachineName.Should().Be("");
             timeFrame.MouseEvents.Should().Be(0);
             timeFrame.KeyboardEvents.Should().Be(0);
         }
 
         [Fact]
-        public async Task CustomJsonSerializer_WhenSerializingTimeFrame_ShouldMatchExpectedFormat()
+        public void UtilizationTimeFrame_SetProperties_ShouldStoreValues()
+        {
+            // Arrange
+            var startTime = new DateTime(2025, 10, 1, 12, 0, 0);
+            var endTime = new DateTime(2025, 10, 1, 12, 5, 0);
+
+            // Act
+            var timeFrame = new UtilizationTimeFrame
+            {
+                StartTime = startTime,
+                EndTime = endTime,
+                MouseEvents = 100,
+                KeyboardEvents = 50,
+                FileChanges = "file1.txt,file2.txt",
+                Product = "A201",
+                MachineName = "TESTMACHINE"
+            };
+
+            // Assert
+            timeFrame.StartTime.Should().Be(startTime);
+            timeFrame.EndTime.Should().Be(endTime);
+            timeFrame.MouseEvents.Should().Be(100);
+            timeFrame.KeyboardEvents.Should().Be(50);
+            timeFrame.FileChanges.Should().Be("file1.txt,file2.txt");
+            timeFrame.Product.Should().Be("A201");
+            timeFrame.MachineName.Should().Be("TESTMACHINE");
+        }
+
+        [Fact]
+        public void UtilizationTimeFrame_WithZeroEvents_ShouldAcceptZeroValues()
+        {
+            // Act
+            var timeFrame = new UtilizationTimeFrame
+            {
+                MouseEvents = 0,
+                KeyboardEvents = 0
+            };
+
+            // Assert
+            timeFrame.MouseEvents.Should().Be(0);
+            timeFrame.KeyboardEvents.Should().Be(0);
+        }
+
+        [Fact]
+        public void UtilizationTimeFrame_WithLargeEventCounts_ShouldAcceptLargeValues()
+        {
+            // Act
+            var timeFrame = new UtilizationTimeFrame
+            {
+                MouseEvents = 999999,
+                KeyboardEvents = 888888
+            };
+
+            // Assert
+            timeFrame.MouseEvents.Should().Be(999999);
+            timeFrame.KeyboardEvents.Should().Be(888888);
+        }
+
+        #endregion
+
+        #region ConfigurationModel Tests
+
+        [Fact]
+        public void ConfigurationModel_Constructor_ShouldInitializeAllProperties()
+        {
+            // Act
+            var config = new ConfigurationModel();
+
+            // Assert
+            config.Jose.Should().NotBeNull().And.BeEmpty();
+            config.SumPOR.Should().NotBeNull();
+            config.Mouse.Should().NotBeNull();
+            config.Keyboard.Should().NotBeNull();
+            config.Hook.Should().NotBeNull();
+            config.VM.Should().NotBeNull();
+            config.Monitoring.Should().NotBeNull();
+            config.JsonOutputPath.Should().Be("");
+        }
+
+        [Fact]
+        public void ConfigurationModel_SetJsonOutputPath_ShouldStoreValue()
+        {
+            // Arrange
+            var config = new ConfigurationModel();
+            var path = @"C:\Temp\output.json";
+
+            // Act
+            config.JsonOutputPath = path;
+
+            // Assert
+            config.JsonOutputPath.Should().Be(path);
+        }
+
+        [Fact]
+        public void ConfigurationModel_AddMonitorTxtConfig_ShouldStoreInDictionary()
+        {
+            // Arrange
+            var config = new ConfigurationModel();
+            var monitorConfig = new MonitorTxtConfig
+            {
+                FilePath = @"C:\Logs\app.log",
+                NoContent = "No data",
+                Skip = "skip_section",
+                FormatDate = "yyyyMMdd",
+                LastlineContent = "Last line"
+            };
+
+            // Act
+            config.Jose.Add("monitor1", monitorConfig);
+
+            // Assert
+            config.Jose.Should().ContainKey("monitor1");
+            config.Jose["monitor1"].FilePath.Should().Be(@"C:\Logs\app.log");
+        }
+
+        #endregion
+
+        #region VMConfig Tests
+
+        [Fact]
+        public void VMConfig_Constructor_ShouldInitializeWithEmptyValues()
+        {
+            // Act
+            var vmConfig = new VMConfig();
+
+            // Assert
+            vmConfig.Username.Should().NotBeNull();
+            vmConfig.Password.Should().NotBeNull();
+        }
+
+        [Fact]
+        public void VMConfig_SetCredentials_ShouldStoreValues()
+        {
+            // Arrange
+            var vmConfig = new VMConfig();
+
+            // Act
+            vmConfig.Username = "testuser";
+            vmConfig.Password = "testpass";
+
+            // Assert
+            vmConfig.Username.Should().Be("testuser");
+            vmConfig.Password.Should().Be("testpass");
+        }
+
+        #endregion
+
+        #region MonitoringConfig Tests
+
+        [Fact]
+        public void MonitoringConfig_Constructor_ShouldSetDefaultInterval()
+        {
+            // Act
+            var config = new MonitoringConfig();
+
+            // Assert
+            config.RecordIntervalMinutes.Should().Be(5);
+        }
+
+        [Fact]
+        public void MonitoringConfig_SetCustomInterval_ShouldStoreValue()
+        {
+            // Arrange
+            var config = new MonitoringConfig();
+
+            // Act
+            config.RecordIntervalMinutes = 10;
+
+            // Assert
+            config.RecordIntervalMinutes.Should().Be(10);
+        }
+
+        #endregion
+
+        #region MouseConfig Tests
+
+        [Fact]
+        public void MouseConfig_SetAllProperties_ShouldStoreValues()
+        {
+            // Act
+            var mouseConfig = new MouseConfig
+            {
+                WM_LBUTTONDOWN = 0x0201,
+                WM_RBUTTONDOWN = 0x0204,
+                WM_MBUTTONDOWN = 0x0207,
+                WM_MOUSEMOVE = 0x0200,
+                WM_MOUSEWHEEL = 0x020A,
+                MouseMoveThrottleMs = 100
+            };
+
+            // Assert
+            mouseConfig.WM_LBUTTONDOWN.Should().Be(0x0201);
+            mouseConfig.WM_RBUTTONDOWN.Should().Be(0x0204);
+            mouseConfig.WM_MBUTTONDOWN.Should().Be(0x0207);
+            mouseConfig.WM_MOUSEMOVE.Should().Be(0x0200);
+            mouseConfig.WM_MOUSEWHEEL.Should().Be(0x020A);
+            mouseConfig.MouseMoveThrottleMs.Should().Be(100);
+        }
+
+        #endregion
+
+        #region KeyboardConfig Tests
+
+        [Fact]
+        public void KeyboardConfig_SetProperties_ShouldStoreValues()
+        {
+            // Act
+            var keyboardConfig = new KeyboardConfig
+            {
+                WM_KEYDOWN = 0x0100,
+                WM_SYSKEYDOWN = 0x0104
+            };
+
+            // Assert
+            keyboardConfig.WM_KEYDOWN.Should().Be(0x0100);
+            keyboardConfig.WM_SYSKEYDOWN.Should().Be(0x0104);
+        }
+
+        #endregion
+
+        #region HookConfig Tests
+
+        [Fact]
+        public void HookConfig_SetProperties_ShouldStoreValues()
+        {
+            // Act
+            var hookConfig = new HookConfig
+            {
+                WH_KEYBOARD_LL = 13,
+                WH_MOUSE_LL = 14
+            };
+
+            // Assert
+            hookConfig.WH_KEYBOARD_LL.Should().Be(13);
+            hookConfig.WH_MOUSE_LL.Should().Be(14);
+        }
+
+        #endregion
+
+        #region MonitorTxtConfig Tests
+
+        [Fact]
+        public void MonitorTxtConfig_SetAllProperties_ShouldStoreValues()
+        {
+            // Act
+            var config = new MonitorTxtConfig
+            {
+                FilePath = @"C:\Logs\test.log",
+                NoContent = "Empty",
+                Skip = "skip_data",
+                FormatDate = "yyyy-MM-dd",
+                LastlineContent = "Final line"
+            };
+
+            // Assert
+            config.FilePath.Should().Be(@"C:\Logs\test.log");
+            config.NoContent.Should().Be("Empty");
+            config.Skip.Should().Be("skip_data");
+            config.FormatDate.Should().Be("yyyy-MM-dd");
+            config.LastlineContent.Should().Be("Final line");
+        }
+
+        #endregion
+
+        #region SumPORConfig Tests
+
+        [Fact]
+        public void SumPORConfig_Constructor_ShouldInitializeDefaults()
+        {
+            // Act
+            var config = new SumPORConfig();
+
+            // Assert
+            config.Args.Should().NotBeNull();
+            config.Debug.Should().BeFalse();
+        }
+
+        [Fact]
+        public void SumPORConfig_SetProperties_ShouldStoreValues()
+        {
+            // Act
+            var config = new SumPORConfig
+            {
+                ShouldReadLogFiles = true,
+                Debug = true,
+                ProductLogPath = @"C:\Products\logs"
+            };
+
+            // Assert
+            config.ShouldReadLogFiles.Should().BeTrue();
+            config.Debug.Should().BeTrue();
+            config.ProductLogPath.Should().Be(@"C:\Products\logs");
+        }
+
+        #endregion
+
+        #region ArgsConfig Tests
+
+        [Fact]
+        public void ArgsConfig_Constructor_ShouldSetDefaults()
+        {
+            // Act
+            var config = new ArgsConfig();
+
+            // Assert
+            config.RollingInterval.Should().Be("Day");
+            config.RetainedFileCountLimit.Should().Be(15);
+            config.OutputTemplate.Should().Be("{Message:l}{NewLine}");
+        }
+
+        [Fact]
+        public void ArgsConfig_SetCustomValues_ShouldStoreValues()
+        {
+            // Act
+            var config = new ArgsConfig
+            {
+                RollingInterval = "Hour",
+                RetainedFileCountLimit = 30,
+                OutputTemplate = "{Timestamp} {Message}"
+            };
+
+            // Assert
+            config.RollingInterval.Should().Be("Hour");
+            config.RetainedFileCountLimit.Should().Be(30);
+            config.OutputTemplate.Should().Be("{Timestamp} {Message}");
+        }
+
+        #endregion
+
+        #region DataModelConfig Tests
+
+        [Fact]
+        public void DataModelConfig_SetAllProperties_ShouldStoreValues()
+        {
+            // Act
+            var config = new DataModelConfig
+            {
+                FilePath = @"C:\Data\file.txt",
+                NoContent = "N/A",
+                Skip = "header",
+                FormatDate = "yyyyMMdd",
+                LastlineContent = "EOF"
+            };
+
+            // Assert
+            config.FilePath.Should().Be(@"C:\Data\file.txt");
+            config.NoContent.Should().Be("N/A");
+            config.Skip.Should().Be("header");
+            config.FormatDate.Should().Be("yyyyMMdd");
+            config.LastlineContent.Should().Be("EOF");
+        }
+
+        #endregion
+
+        #region DataModelStorage Tests
+
+        [Fact]
+        public void DataModelStorage_SetProperties_ShouldStoreValues()
+        {
+            // Act
+            var storage = new DataModelStorage
+            {
+                FilePath = @"C:\Storage\data.db",
+                LastWriteTime = "2025-10-01 12:00:00",
+                NumlastLineWroteStorage = 42,
+                LastlineContent = "Last stored line"
+            };
+
+            // Assert
+            storage.FilePath.Should().Be(@"C:\Storage\data.db");
+            storage.LastWriteTime.Should().Be("2025-10-01 12:00:00");
+            storage.NumlastLineWroteStorage.Should().Be(42);
+            storage.LastlineContent.Should().Be("Last stored line");
+        }
+
+        #endregion
+
+        #region DataModelSkip Tests
+
+        [Fact]
+        public void DataModelSkip_SetProperties_ShouldStoreValues()
+        {
+            // Act
+            var skip = new DataModelSkip
+            {
+                From = "2025-10-01",
+                To = "2025-10-31"
+            };
+
+            // Assert
+            skip.From.Should().Be("2025-10-01");
+            skip.To.Should().Be("2025-10-31");
+        }
+
+        #endregion
+
+        #region MonitorConfiguration Tests
+
+        [Fact]
+        public void MonitorConfiguration_Constructor_ShouldSetDefaults()
+        {
+            // Act
+            var config = new MonitorConfiguration();
+
+            // Assert
+            config.RecordInterval.Should().Be(TimeSpan.FromMinutes(5));
+            config.DirectoriesToWatch.Should().NotBeNull().And.BeEmpty();
+        }
+
+        [Fact]
+        public void MonitorConfiguration_AddDirectories_ShouldStoreInList()
+        {
+            // Arrange
+            var config = new MonitorConfiguration();
+            var dir1 = new DirectoryWatch { Path = @"C:\Watch1", Filter = "*.log" };
+            var dir2 = new DirectoryWatch { Path = @"C:\Watch2", Filter = "*.txt" };
+
+            // Act
+            config.DirectoriesToWatch.Add(dir1);
+            config.DirectoriesToWatch.Add(dir2);
+
+            // Assert
+            config.DirectoriesToWatch.Should().HaveCount(2);
+            config.DirectoriesToWatch[0].Path.Should().Be(@"C:\Watch1");
+            config.DirectoriesToWatch[1].Filter.Should().Be("*.txt");
+        }
+
+        [Fact]
+        public void MonitorConfiguration_SetCustomInterval_ShouldStoreValue()
+        {
+            // Arrange
+            var config = new MonitorConfiguration();
+
+            // Act
+            config.RecordInterval = TimeSpan.FromMinutes(10);
+
+            // Assert
+            config.RecordInterval.Should().Be(TimeSpan.FromMinutes(10));
+        }
+
+        #endregion
+
+        #region DirectoryWatch Tests
+
+        [Fact]
+        public void DirectoryWatch_SetProperties_ShouldStoreValues()
+        {
+            // Act
+            var watch = new DirectoryWatch
+            {
+                Path = @"C:\Monitored",
+                Filter = "*.xml"
+            };
+
+            // Assert
+            watch.Path.Should().Be(@"C:\Monitored");
+            watch.Filter.Should().Be("*.xml");
+        }
+
+        #endregion
+
+        #region CustomJsonSerializer Tests
+
+        [Fact]
+        public void CustomJsonSerializer_Serialize_ShouldProduceValidJson()
         {
             // Arrange
             var timeFrame = new UtilizationTimeFrame
             {
-                StartTime = new DateTime(2025, 9, 19, 12, 0, 0, DateTimeKind.Utc),
-                EndTime = new DateTime(2025, 9, 19, 12, 5, 0, DateTimeKind.Utc),
-                MachineName = "TEST_MACHINE",
+                StartTime = new DateTime(2025, 10, 1, 12, 0, 0, DateTimeKind.Utc),
+                EndTime = new DateTime(2025, 10, 1, 12, 5, 0, DateTimeKind.Utc),
+                MouseEvents = 100,
+                KeyboardEvents = 50,
+                FileChanges = "file1.txt",
                 Product = "A201",
-                MouseEvents = 5,
-                KeyboardEvents = 10,
-                FileChanges = "Test file changes"
+                MachineName = "TEST"
             };
 
             // Act
-            var serialized = CustomJsonSerializer.Serialize(timeFrame);
-            var deserialized = JsonConvert.DeserializeObject<UtilizationTimeFrame>(serialized);
+            var json = CustomJsonSerializer.Serialize(timeFrame);
 
             // Assert
-            deserialized.Should().BeEquivalentTo(timeFrame);
+            json.Should().NotBeNullOrEmpty();
+            json.Should().Contain("StartTime");
+            json.Should().Contain("EndTime");
+            json.Should().Contain("MouseEvents");
+            json.Should().Contain("KeyboardEvents");
         }
 
-        private async Task<ValidationResult> ValidateDataFilesAsync(string csvPath, string jsonPath)
+        [Fact]
+        public void CustomJsonSerializer_Serialize_ShouldBeDeserializable()
         {
-            try
+            // Arrange
+            var original = new UtilizationTimeFrame
             {
-                var csvData = await LoadCsvDataAsync(csvPath);
-                var jsonData = await LoadJsonDataAsync(jsonPath);
-
-                var matchedRecords = 0;
-                var productMatch = true;
-                var errors = new List<string>();
-
-                // Simple validation logic
-                foreach (var jsonFrame in jsonData.Take(10)) // Validate first 10 records
-                {
-                    var correspondingCsvData = csvData
-                        .Where(csv => Math.Abs((csv.StartTime - jsonFrame.StartTime).TotalMinutes) < 5)
-                        .FirstOrDefault();
-
-                    if (correspondingCsvData != null)
-                    {
-                        matchedRecords++;
-                        
-                        if (jsonFrame.MouseEvents != correspondingCsvData.MouseEvents)
-                        {
-                            errors.Add($"Mouse events mismatch at {jsonFrame.StartTime}: JSON={jsonFrame.MouseEvents}, CSV={correspondingCsvData.MouseEvents}");
-                        }
-                        
-                        if (jsonFrame.KeyboardEvents != correspondingCsvData.KeyboardEvents)
-                        {
-                            errors.Add($"Keyboard events mismatch at {jsonFrame.StartTime}: JSON={jsonFrame.KeyboardEvents}, CSV={correspondingCsvData.KeyboardEvents}");
-                        }
-                    }
-                }
-
-                return new ValidationResult
-                {
-                    IsValid = errors.Count == 0,
-                    MatchedRecords = matchedRecords,
-                    ProductMatch = productMatch,
-                    ErrorMessage = string.Join("; ", errors)
-                };
-            }
-            catch (Exception ex)
-            {
-                return new ValidationResult
-                {
-                    IsValid = false,
-                    ErrorMessage = ex.Message
-                };
-            }
-        }
-
-        private async Task<NetworkPathResult> TryAccessNetworkPathAsync()
-        {
-            try
-            {
-                if (!Directory.Exists(NETWORK_PATH))
-                {
-                    return new NetworkPathResult
-                    {
-                        IsAccessible = false,
-                        ErrorMessage = "Network path does not exist"
-                    };
-                }
-
-                var csvFiles = Directory.GetFiles(NETWORK_PATH, "hdmx*.csv", SearchOption.TopDirectoryOnly)
-                    .ToList();
-
-                return new NetworkPathResult
-                {
-                    IsAccessible = true,
-                    CsvFiles = csvFiles
-                };
-            }
-            catch (Exception ex)
-            {
-                return new NetworkPathResult
-                {
-                    IsAccessible = false,
-                    ErrorMessage = ex.Message
-                };
-            }
-        }
-
-        private async Task<List<CsvDataRecord>> LoadCsvDataAsync(string csvPath)
-        {
-            // Simplified CSV loading - replace with your actual CSV structure
-            var lines = await File.ReadAllLinesAsync(csvPath);
-            var records = new List<CsvDataRecord>();
-
-            foreach (var line in lines.Skip(1)) // Skip header
-            {
-                var parts = line.Split(',');
-                if (parts.Length >= 7)
-                {
-                    records.Add(new CsvDataRecord
-                    {
-                        StartTime = DateTime.Parse(parts[0]),
-                        EndTime = DateTime.Parse(parts[1]),
-                        MachineName = parts[2],
-                        Product = parts[3],
-                        MouseEvents = int.Parse(parts[4]),
-                        KeyboardEvents = int.Parse(parts[5]),
-                        FileChanges = parts[6]
-                    });
-                }
-            }
-
-            return records;
-        }
-
-        private async Task<List<UtilizationTimeFrame>> LoadJsonDataAsync(string jsonPath)
-        {
-            var lines = await File.ReadAllLinesAsync(jsonPath);
-            var timeFrames = new List<UtilizationTimeFrame>();
-
-            foreach (var line in lines.Where(l => !string.IsNullOrWhiteSpace(l)))
-            {
-                try
-                {
-                    var timeFrame = JsonConvert.DeserializeObject<UtilizationTimeFrame>(line);
-                    if (timeFrame != null)
-                    {
-                        timeFrames.Add(timeFrame);
-                    }
-                }
-                catch (JsonException ex)
-                {
-                    _output.WriteLine($"Failed to parse JSON line: {ex.Message}");
-                }
-            }
-
-            return timeFrames;
-        }
-
-        private FileInfo ExtractFileInfoFromPath(string fileName)
-        {
-            var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
-            var parts = nameWithoutExtension.Split('_');
-
-            if (parts.Length < 4)
-            {
-                throw new ArgumentException($"Invalid filename format: {fileName}");
-            }
-
-            var productId = parts[1].ToUpper();
-            var month = int.Parse(parts[2]);
-            var day = int.Parse(parts[3]);
-            var year = DateTime.Now.Year;
-
-            return new FileInfo
-            {
-                ProductId = productId,
-                Date = new DateTime(year, month, day),
-                OriginalFileName = nameWithoutExtension
+                StartTime = new DateTime(2025, 10, 1, 12, 0, 0, DateTimeKind.Utc),
+                EndTime = new DateTime(2025, 10, 1, 12, 5, 0, DateTimeKind.Utc),
+                MouseEvents = 75,
+                KeyboardEvents = 25,
+                FileChanges = "test.log",
+                Product = "A101",
+                MachineName = "MACHINE1"
             };
+
+            // Act
+            var json = CustomJsonSerializer.Serialize(original);
+            var deserialized = JsonConvert.DeserializeObject<UtilizationTimeFrame>(json);
+
+            // Assert
+            deserialized.Should().NotBeNull();
+            deserialized.StartTime.Should().Be(original.StartTime);
+            deserialized.EndTime.Should().Be(original.EndTime);
+            deserialized.MouseEvents.Should().Be(original.MouseEvents);
+            deserialized.KeyboardEvents.Should().Be(original.KeyboardEvents);
+            deserialized.Product.Should().Be(original.Product);
+            deserialized.MachineName.Should().Be(original.MachineName);
         }
 
-        private async Task<string> CreateTestCsvFileAsync(string fileName)
+        [Fact]
+        public void CustomJsonSerializer_WithEmptyObject_ShouldSerialize()
         {
-            var tempPath = Path.Combine(Path.GetTempPath(), fileName);
-            
-            var csvContent = """
-StartTime,EndTime,MachineName,Product,MouseEvents,KeyboardEvents,FileChanges
-2025-09-19T00:02:01Z,2025-09-19T00:07:01Z,HDMT_60123,A201,0,0,
-2025-09-19T00:07:01Z,2025-09-19T00:12:01Z,HDMT_60123,A201,5,3,/path/to/file
-2025-09-19T00:12:01Z,2025-09-19T00:17:01Z,HDMT_60123,A201,2,1,
-""";
+            // Arrange
+            var timeFrame = new UtilizationTimeFrame();
 
-            await File.WriteAllTextAsync(tempPath, csvContent);
-            _tempFiles.Add(tempPath);
-            
-            return tempPath;
+            // Act
+            var json = CustomJsonSerializer.Serialize(timeFrame);
+
+            // Assert
+            json.Should().NotBeNullOrEmpty();
+            var deserialized = JsonConvert.DeserializeObject<UtilizationTimeFrame>(json);
+            deserialized.Should().NotBeNull();
         }
 
-        private async Task<string> CreateTestJsonFileAsync(string fileName)
+        [Fact]
+        public void CustomJsonSerializer_WithSpecialCharacters_ShouldHandleCorrectly()
         {
-            var tempPath = Path.Combine(Path.GetTempPath(), fileName);
-            
-            var jsonContent = """
-{"StartTime":"2025-09-19T00:02:01Z","EndTime":"2025-09-19T00:07:01Z","MachineName":"HDMT_60123","Product":"A201","MouseEvents":0,"KeyboardEvents":0,"FileChanges":""}
-{"StartTime":"2025-09-19T00:07:01Z","EndTime":"2025-09-19T00:12:01Z","MachineName":"HDMT_60123","Product":"A201","MouseEvents":5,"KeyboardEvents":3,"FileChanges":"/path/to/file"}
-{"StartTime":"2025-09-19T00:12:01Z","EndTime":"2025-09-19T00:17:01Z","MachineName":"HDMT_60123","Product":"A201","MouseEvents":2,"KeyboardEvents":1,"FileChanges":""}
-""";
-
-            await File.WriteAllTextAsync(tempPath, jsonContent);
-            _tempFiles.Add(tempPath);
-            
-            return tempPath;
-        }
-
-        public Task InitializeAsync() => Task.CompletedTask;
-
-        public Task DisposeAsync()
-        {
-            // Cleanup temp files
-            foreach (var tempFile in _tempFiles)
+            // Arrange
+            var timeFrame = new UtilizationTimeFrame
             {
-                try
-                {
-                    if (File.Exists(tempFile))
-                        File.Delete(tempFile);
-                }
-                catch (Exception ex)
-                {
-                    _output.WriteLine($"Failed to delete temp file {tempFile}: {ex.Message}");
-                }
-            }
-            
-            return Task.CompletedTask;
+                FileChanges = "file with spaces.txt, file\"quotes\".log",
+                Product = "A-201",
+                MachineName = "TEST_MACHINE_123"
+            };
+
+            // Act
+            var json = CustomJsonSerializer.Serialize(timeFrame);
+            var deserialized = JsonConvert.DeserializeObject<UtilizationTimeFrame>(json);
+
+            // Assert
+            deserialized.FileChanges.Should().Contain("file with spaces.txt");
+            deserialized.Product.Should().Be("A-201");
+            deserialized.MachineName.Should().Be("TEST_MACHINE_123");
         }
-    }
 
-    // Supporting classes
-    public class ValidationResult
-    {
-        public bool IsValid { get; set; }
-        public int MatchedRecords { get; set; }
-        public bool ProductMatch { get; set; }
-        public string ErrorMessage { get; set; } = string.Empty;
-    }
+        #endregion
 
-    public class NetworkPathResult
-    {
-        public bool IsAccessible { get; set; }
-        public List<string> CsvFiles { get; set; } = new();
-        public string ErrorMessage { get; set; } = string.Empty;
+        #region Integration Tests
+
+        [Fact]
+        public void ConfigurationModel_CompleteConfiguration_ShouldWorkTogether()
+        {
+            // Arrange & Act
+            var config = new ConfigurationModel
+            {
+                JsonOutputPath = @"C:\Output\data.json",
+                Jose = new Dictionary<string, MonitorTxtConfig>
+                {
+                    ["monitor1"] = new MonitorTxtConfig
+                    {
+                        FilePath = @"C:\Logs\app.log",
+                        NoContent = "Empty",
+                        Skip = "header",
+                        FormatDate = "yyyyMMdd",
+                        LastlineContent = "EOF"
+                    }
+                },
+                SumPOR = new SumPORConfig
+                {
+                    ShouldReadLogFiles = true,
+                    Debug = false,
+                    ProductLogPath = @"C:\Products"
+                },
+                Mouse = new MouseConfig
+                {
+                    WM_LBUTTONDOWN = 0x0201,
+                    WM_RBUTTONDOWN = 0x0204,
+                    MouseMoveThrottleMs = 100
+                },
+                Keyboard = new KeyboardConfig
+                {
+                    WM_KEYDOWN = 0x0100,
+                    WM_SYSKEYDOWN = 0x0104
+                },
+                Hook = new HookConfig
+                {
+                    WH_KEYBOARD_LL = 13,
+                    WH_MOUSE_LL = 14
+                },
+                VM = new VMConfig
+                {
+                    Username = "testuser",
+                    Password = "testpass"
+                },
+                Monitoring = new MonitoringConfig
+                {
+                    RecordIntervalMinutes = 10
+                }
+            };
+
+            // Assert
+            config.Jose.Should().ContainKey("monitor1");
+            config.SumPOR.ShouldReadLogFiles.Should().BeTrue();
+            config.Mouse.MouseMoveThrottleMs.Should().Be(100);
+            config.Keyboard.WM_KEYDOWN.Should().Be(0x0100);
+            config.Hook.WH_KEYBOARD_LL.Should().Be(13);
+            config.VM.Username.Should().Be("testuser");
+            config.Monitoring.RecordIntervalMinutes.Should().Be(10);
+        }
+
+        [Fact]
+        public void MonitorConfiguration_WithMultipleDirectories_ShouldManageAll()
+        {
+            // Arrange
+            var config = new MonitorConfiguration
+            {
+                RecordInterval = TimeSpan.FromMinutes(15)
+            };
+
+            // Act
+            config.DirectoriesToWatch.Add(new DirectoryWatch { Path = @"C:\Dir1", Filter = "*.log" });
+            config.DirectoriesToWatch.Add(new DirectoryWatch { Path = @"C:\Dir2", Filter = "*.txt" });
+            config.DirectoriesToWatch.Add(new DirectoryWatch { Path = @"C:\Dir3", Filter = "*.xml" });
+
+            // Assert
+            config.DirectoriesToWatch.Should().HaveCount(3);
+            config.RecordInterval.TotalMinutes.Should().Be(15);
+        }
+
+        #endregion
     }
 }

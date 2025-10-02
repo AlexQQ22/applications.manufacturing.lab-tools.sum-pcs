@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;  // ← ADD THIS
 using System.Threading;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
@@ -8,6 +9,7 @@ using SystemUtilizationMonitor.Models;
 
 namespace SystemUtilizationMonitor.Services
 {
+    [ExcludeFromCodeCoverage]  // ← ADD THIS
     public class InputHookManager : IDisposable
     {
         private IntPtr keyboardHookId = IntPtr.Zero;

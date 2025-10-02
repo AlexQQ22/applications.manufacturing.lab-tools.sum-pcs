@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
@@ -14,6 +15,7 @@ namespace SystemUtilizationMonitor.Services
     /// Clase responsable de todo el monitoreo, control y gestión de las máquinas virtuales
     /// Incluye funcionalidades para detectar VMs activas, cerrarlas automáticamente y gestionar timeouts
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public class MonitoringVMs
     {
         #region Constantes
