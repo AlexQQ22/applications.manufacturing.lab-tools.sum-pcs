@@ -23,7 +23,7 @@ namespace SystemUtilizationMonitor.Tests
 
             // Assert
             result.Should().NotBeNullOrWhiteSpace();
-            
+
             // Cleanup
             Environment.SetEnvironmentVariable("PRODUCT_CODE", null);
         }
@@ -119,9 +119,9 @@ namespace SystemUtilizationMonitor.Tests
             // Act - First call might be slower
             var result1 = ProductDetector.GetProduct();
             var firstCallTime = stopwatch.ElapsedMilliseconds;
-            
+
             stopwatch.Restart();
-            
+
             // Second call should be faster (cached)
             var result2 = ProductDetector.GetProduct();
             var secondCallTime = stopwatch.ElapsedMilliseconds;
@@ -155,7 +155,8 @@ namespace SystemUtilizationMonitor.Tests
             {
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
-                    var product = ProductDetector.GetProduct();
+                    var productDetector = new ProductDetector(/* dependencies */);
+                    var product = productDetector.GetProduct();
                     results.Add(product);
                 }));
             }

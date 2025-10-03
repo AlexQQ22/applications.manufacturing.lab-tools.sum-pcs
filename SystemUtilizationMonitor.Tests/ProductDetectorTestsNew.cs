@@ -155,7 +155,8 @@ namespace SystemUtilizationMonitor.Tests
             {
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
-                    var product = ProductDetector.GetProduct();
+                    var productDetector = new ProductDetector(/* dependencies */);
+                    var product = productDetector.GetProduct();
                     results.Add(product);
                 }));
             }

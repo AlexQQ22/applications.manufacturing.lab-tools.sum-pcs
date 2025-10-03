@@ -48,7 +48,8 @@ namespace SystemUtilizationMonitor.Tests
             File.WriteAllText(configPath, configContent);
 
             // Act
-            var result = ConfigurationLoader.LoadConfiguration(configPath);
+            var loader = new ConfigurationLoader();
+            var result = loader.LoadConfiguration(configPath);
 
             // Assert
             result.Should().NotBeNull();
@@ -61,7 +62,8 @@ namespace SystemUtilizationMonitor.Tests
             var nonExistentPath = Path.Combine(tempDirectory, "nonexistent.json");
 
             // Act
-            var result = ConfigurationLoader.LoadConfiguration(nonExistentPath);
+            var loader = new ConfigurationLoader();
+            var result = loader.LoadConfiguration(nonExistentPath);
 
             // Assert
             result.Should().NotBeNull();
@@ -75,7 +77,8 @@ namespace SystemUtilizationMonitor.Tests
             File.WriteAllText(configPath, "{ invalid json }");
 
             // Act
-            var result = ConfigurationLoader.LoadConfiguration(configPath);
+            var loader = new ConfigurationLoader();
+            var result = loader.LoadConfiguration(configPath);
 
             // Assert
             result.Should().NotBeNull();
@@ -89,7 +92,8 @@ namespace SystemUtilizationMonitor.Tests
             File.WriteAllText(configPath, "");
 
             // Act
-            var result = ConfigurationLoader.LoadConfiguration(configPath);
+            var loader = new ConfigurationLoader();
+            var result = loader.LoadConfiguration(configPath);
 
             // Assert
             result.Should().NotBeNull();
@@ -119,7 +123,8 @@ namespace SystemUtilizationMonitor.Tests
             var testDir = Path.Combine(tempDirectory, "testdir");
 
             // Act
-            FileSystemOperations.EnsureDirectoryExists(testDir);
+            var fileSystem = new FileSystemOperations();
+            fileSystem.EnsureDirectoryExists(testDir);
 
             // Assert
             Directory.Exists(testDir).Should().BeTrue();
@@ -133,7 +138,8 @@ namespace SystemUtilizationMonitor.Tests
             Directory.CreateDirectory(testDir);
 
             // Act
-            Action act = () => FileSystemOperations.EnsureDirectoryExists(testDir);
+            var fileSystem = new FileSystemOperations();
+            Action act = () => fileSystem.EnsureDirectoryExists(testDir);
 
             // Assert
             act.Should().NotThrow();
@@ -147,7 +153,8 @@ namespace SystemUtilizationMonitor.Tests
             var content = "test content";
 
             // Act
-            FileSystemOperations.WriteFile(filePath, content);
+            var fileSystem = new FileSystemOperations();
+            fileSystem.WriteFile(filePath, content);
 
             // Assert
             File.Exists(filePath).Should().BeTrue();
@@ -163,7 +170,8 @@ namespace SystemUtilizationMonitor.Tests
             File.WriteAllText(filePath, content);
 
             // Act
-            var result = FileSystemOperations.ReadFile(filePath);
+            var fileSystem = new FileSystemOperations();
+            var result = fileSystem.ReadFile(filePath);
 
             // Assert
             result.Should().Be(content);
@@ -208,7 +216,8 @@ namespace SystemUtilizationMonitor.Tests
             File.WriteAllText(file3, "");
 
             // Act
-            var result = FileSystemOperations.GetFiles(tempDirectory, "*.txt");
+            var fileSystem = new FileSystemOperations();
+            var result = fileSystem.GetFiles(tempDirectory, "*.txt");
 
             // Assert
             result.Should().HaveCount(2);
