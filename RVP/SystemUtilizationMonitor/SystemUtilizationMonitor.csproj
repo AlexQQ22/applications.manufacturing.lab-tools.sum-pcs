@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyTitle>SystemUtilizationMonitor</AssemblyTitle>
+    <AssemblyDescription>System Utilization Monitor Service</AssemblyDescription>
+    <AssemblyProduct>SystemUtilizationMonitor</AssemblyProduct>
+    <AssemblyCompany>Intel</AssemblyCompany>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    
+    <!-- Ensure all runtime dependencies are included -->
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>false</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <PublishTrimmed>false</PublishTrimmed>
+    
+    <!-- Enable detailed dependency output -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+  </PropertyGroup>
+
+  <ItemGroup>
+  <PackageReference Include="MouseKeyHook" Version="5.6.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Ensure all runtime files are copied to output -->
+  <PropertyGroup>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RestorePackagesConfig>true</RestorePackagesConfig>
+  </PropertyGroup>
+
+</Project>
