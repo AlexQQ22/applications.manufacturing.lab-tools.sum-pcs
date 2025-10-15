@@ -16,6 +16,8 @@ namespace SystemUtilizationMonitor.Utilities
             parts.Add("\"StartTime\":\"" + timeFrame.StartTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") + "\"");
             parts.Add("\"EndTime\":\"" + timeFrame.EndTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") + "\"");
             parts.Add("\"MachineName\":\"" + EscapeJson(timeFrame.MachineName) + "\"");
+    parts.Add("\"PCName\":\"" + EscapeJson(timeFrame.PCName) + "\"");           // Add this line
+    parts.Add("\"Cell\":\"" + EscapeJson(timeFrame.Cell) + "\"");               // Add this line
             parts.Add("\"Product\":\"" + timeFrame.Product + "\"");
             parts.Add("\"MouseEvents\":" + timeFrame.MouseEvents);
             parts.Add("\"KeyboardEvents\":" + timeFrame.KeyboardEvents);

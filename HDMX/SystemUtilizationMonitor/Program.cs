@@ -34,7 +34,7 @@ namespace SystemUtilizationMonitor
         private static string logInfo;
 
         private static InputHookManager inputHook;
-
+        private static DPCToolCellWatcher dpcWatcher;
         private static volatile bool fileChangeDetected = false;
         private static string firstChangedFile = string.Empty;
 
@@ -49,6 +49,16 @@ namespace SystemUtilizationMonitor
             {
 
                 LoadConfiguration();
+                try
+                {
+                    dpcWatcher = new DPCToolCellWatcher();
+                    LogInfo($"DPC Tool Cell Watcher initialized - PCName: {dpcWatcher.PCName}, Cell: {dpcWatcher.CellPosition}");
+                }
+                catch (Exception ex)
+                {
+                    LogError($"Failed to initialize DPC Tool Cell Watcher: {ex.Message}");
+                    dpcWatcher = null;
+                }
 
                 if (!appConfig.SumPOR.Debug)
                 {
@@ -407,7 +417,7 @@ namespace SystemUtilizationMonitor
                 try
                 {
                     Thread.Sleep(config.RecordInterval);
-                    
+
                 }
                 catch (ThreadInterruptedException)
                 {
@@ -432,7 +442,18 @@ namespace SystemUtilizationMonitor
             timeFrame.EndTime = endTime;
             timeFrame.MachineName = Environment.MachineName;
             timeFrame.Product = GetProductPartNumber();
-
+            // Add these lines
+            if (dpcWatcher != null)
+            {
+                timeFrame.PCName = dpcWatcher.PCName;
+                timeFrame.Cell = dpcWatcher.CellPosition;
+            }
+            else
+            {
+                timeFrame.PCName = Environment.MachineName;
+                timeFrame.Cell = "UNKNOWN";
+            }
+            
             if (inputHook != null)
             {
                 timeFrame.MouseEvents = inputHook.GetMouseEventCount();
@@ -657,45 +678,45 @@ namespace SystemUtilizationMonitor
         }
         private static string GetProductFromHDMX(string hdmxPath)
         {
-           try
-           {
-               string configFilePath = Path.Combine(hdmxPath, "TesterHwConfig.xml");
+            try
+            {
+                string configFilePath = Path.Combine(hdmxPath, "TesterHwConfig.xml");
 
-               if (!File.Exists(configFilePath))
-               {
-                   LogInfo($"TesterHwConfig.xml not found at: {configFilePath}");
-                   return "";
-               }
+                if (!File.Exists(configFilePath))
+                {
+                    LogInfo($"TesterHwConfig.xml not found at: {configFilePath}");
+                    return "";
+                }
 
-               LogInfo($"Reading TesterHwConfig.xml from: {configFilePath}");
+                LogInfo($"Reading TesterHwConfig.xml from: {configFilePath}");
 
-               string xmlContent = File.ReadAllText(configFilePath);
+                string xmlContent = File.ReadAllText(configFilePath);
 
-               var tiuSerialNumberRegex = new System.Text.RegularExpressions.Regex(
-                   @"BoardName=""TIUEEPROM1""[^>]*SerialNumber=""([^""]+)""",
-                   System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
-               );
+                var tiuSerialNumberRegex = new System.Text.RegularExpressions.Regex(
+                    @"BoardName=""TIUEEPROM1""[^>]*SerialNumber=""([^""]+)""",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
+                );
 
-               var match = tiuSerialNumberRegex.Match(xmlContent);
-               if (match.Success) // && match.in(json_config_product_dictionary)
-               {
-                   string serialNumber = match.Groups[1].Value.Trim();
+                var match = tiuSerialNumberRegex.Match(xmlContent);
+                if (match.Success) // && match.in(json_config_product_dictionary)
+                {
+                    string serialNumber = match.Groups[1].Value.Trim();
 
-                   LogInfo($"Found TIU SerialNumber in HDMX config: {serialNumber}");
-                   return serialNumber;
-               }
-               else
-               {
-                  // try GetProductFromHDMX2, if also fails then:
-                   LogInfo("TIU SerialNumber pattern not found in TesterHwConfig.xml");
-                   return "";
-               }
-           }
-           catch (Exception ex)
-           {
-               LogError($"Error reading HDMX config: {ex.Message}");
-               return "";
-           }
+                    LogInfo($"Found TIU SerialNumber in HDMX config: {serialNumber}");
+                    return serialNumber;
+                }
+                else
+                {
+                    // try GetProductFromHDMX2, if also fails then:
+                    LogInfo("TIU SerialNumber pattern not found in TesterHwConfig.xml");
+                    return "";
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error reading HDMX config: {ex.Message}");
+                return "";
+            }
         }
 
         private static string GetProductFromHSTMethod1()

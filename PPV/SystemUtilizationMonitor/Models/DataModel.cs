@@ -99,7 +99,7 @@ namespace SystemUtilizationMonitor.Models
         {
             Args = new ArgsConfig();
             Debug = false;
-            
+
         }
     }
 
@@ -151,12 +151,16 @@ namespace SystemUtilizationMonitor.Models
         public string FileChanges { get; set; }
         public string Product { get; set; }
         public string MachineName { get; set; }
+        public string PCName { get; set; }      // Add this line
+        public string Cell { get; set; }        // Add this line
 
         public UtilizationTimeFrame()
         {
-            FileChanges =  "";
+            FileChanges = "";
             Product = ""; // Initialize with empty string
             MachineName = "";
+            PCName = "";                        // Add this line
+            Cell = "";                          // Add this line
         }
     }
 

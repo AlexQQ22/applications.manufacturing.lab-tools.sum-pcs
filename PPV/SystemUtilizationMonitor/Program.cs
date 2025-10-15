@@ -28,6 +28,7 @@ namespace SystemUtilizationMonitor
         private static ConfigurationModel appConfig;
         private static string logInfo;
         private static InputHookManager inputHook;
+        private static DPCToolCellWatcher dpcWatcher;
         private static DateTime lastEndTime = DateTime.UtcNow;
         private static DateTime lastVmConnectedDetection = DateTime.MinValue;
 
@@ -42,6 +43,16 @@ namespace SystemUtilizationMonitor
             {
                 // Cargar configuración de la aplicación
                 LoadConfiguration();
+                try
+                {
+                    dpcWatcher = new DPCToolCellWatcher();
+                    LogInfo($"DPC Tool Cell Watcher initialized - PCName: {dpcWatcher.PCName}, Cell: {dpcWatcher.CellPosition}");
+                }
+                catch (Exception ex)
+                {
+                    LogError($"Failed to initialize DPC Tool Cell Watcher: {ex.Message}");
+                    dpcWatcher = null;
+                }
 
                 // Ocultar ventana de consola si no está en modo debug
                 if (!appConfig.SumPOR.Debug)
@@ -533,6 +544,17 @@ namespace SystemUtilizationMonitor
                 Product = GetProductPartNumber()
             };
 
+            // Add these lines
+            if (dpcWatcher != null)
+            {
+                timeFrame.PCName = dpcWatcher.PCName;
+                timeFrame.Cell = dpcWatcher.CellPosition;
+            }
+            else
+            {
+                timeFrame.PCName = Environment.MachineName;
+                timeFrame.Cell = "UNKNOWN";
+            }
             // Recopilar eventos de entrada (mouse y teclado)
             if (inputHook != null)
             {
