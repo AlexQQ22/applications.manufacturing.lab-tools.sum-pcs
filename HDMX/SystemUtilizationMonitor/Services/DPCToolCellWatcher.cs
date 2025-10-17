@@ -6,6 +6,8 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace SystemUtilizationMonitor.Services
 {
@@ -80,9 +82,9 @@ namespace SystemUtilizationMonitor.Services
         {
             try
             {
-                // Get PC name from network location
-                pcName = GetPCNameFromNetwork();
-                
+                // Get PC name from network location - using synchronous wrapper
+                pcName = GetPCNameFromNetwork().GetAwaiter().GetResult();
+
                 // If network retrieval fails, use local machine name
                 if (string.IsNullOrEmpty(pcName))
                 {
@@ -119,33 +121,71 @@ namespace SystemUtilizationMonitor.Services
             }
         }
 
-        private string GetPCNameFromNetwork()
+        private async Task<string> GetPCNameFromNetwork()
         {
             string[] ipsToTry = { "10.250.0.100", "10.250.0.99" };
-            
+
             foreach (string ip in ipsToTry)
             {
                 try
                 {
                     string networkPath = $@"\\{ip}\c$\SUMInstall\PCinfo.txt";
-                    LogInfo($"Attempting to read PC info from: {networkPath}");
-                    
+                    Console.WriteLine($"Attempting to read PC info from: {networkPath}");
+
                     if (File.Exists(networkPath))
                     {
                         string content = File.ReadAllText(networkPath).Trim();
                         if (!string.IsNullOrEmpty(content))
                         {
-                            LogInfo($"Successfully read PC name from {ip}");
+                            Console.WriteLine($"Successfully read PC name from {ip}: {content}");
                             return content;
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"PCinfo.txt not found at {ip}, attempting to run PCinfo.bat...");
+
+                        const string PSEXEC_PATH = @"c:\SUMInstall\PsExec64.exe";
+                        var processInfo = new ProcessStartInfo
+                        {
+                            FileName = PSEXEC_PATH,
+                            Arguments = $@"\\{ip} -accepteula -nobanner cmd /c ""\\{ip}\c$\SUMInstall\PCinfo.bat""",
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            CreateNoWindow = true
+                        };
+
+                        using (var process = new Process())
+                        {
+                            process.StartInfo = processInfo;
+                            process.Start();
+
+                            string output = await process.StandardOutput.ReadToEndAsync();
+                            string error = await process.StandardError.ReadToEndAsync();
+                            await process.WaitForExitAsync();
+
+                            if (!string.IsNullOrEmpty(error))
+                            {
+                                Console.WriteLine($"Error executing on {ip}: {error}");
+                            }
+
+                            string cleanOutput = output.Trim();
+
+                            if (!string.IsNullOrEmpty(cleanOutput))
+                            {
+                                Console.WriteLine($"Output from {ip}: {cleanOutput}");
+                                return cleanOutput;
+                            }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    LogInfo($"Failed to read from {ip}: {ex.Message}");
+                    Console.WriteLine($"Failed to read from {ip}: {ex.Message}");
                 }
             }
-            
+
             LogInfo("Failed to retrieve PC name from all network locations");
             return "";
         }
