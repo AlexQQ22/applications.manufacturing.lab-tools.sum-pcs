@@ -112,18 +112,18 @@ namespace SystemUtilizationMonitor
         {
             while (!shouldStop)
             {
-                if (string.IsNullOrEmpty(dpcWatcher.PCName)) {
-                    try
-                    {
-                        dpcWatcher = new DPCToolCellWatcher();
-                        LogInfo($"DPC Tool Cell Watcher initialized - PCName: {dpcWatcher.PCName}, Cell: {dpcWatcher.CellPosition}");
-                    }
-                    catch (Exception ex)
-                    {
-                        LogError($"Failed to initialize DPC Tool Cell Watcher: {ex.Message}");
-                        dpcWatcher = null;
-                    }
-                }
+                // if (string.IsNullOrEmpty(dpcWatcher.PCName)) {
+                //     try
+                //     {
+                //         dpcWatcher = new DPCToolCellWatcher();
+                //         LogInfo($"DPC Tool Cell Watcher initialized - PCName: {dpcWatcher.PCName}, Cell: {dpcWatcher.CellPosition}");
+                //     }
+                //     catch (Exception ex)
+                //     {
+                //         LogError($"Failed to initialize DPC Tool Cell Watcher: {ex.Message}");
+                //         dpcWatcher = null;
+                //     }
+                // }
                 var startTime = lastEndTime;
                 logInfo = string.Empty;
 
