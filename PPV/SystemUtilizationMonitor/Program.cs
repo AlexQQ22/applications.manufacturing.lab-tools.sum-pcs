@@ -46,6 +46,7 @@ namespace SystemUtilizationMonitor
                 try
                 {
                     dpcWatcher = new DPCToolCellWatcher();
+                    dpcWatcher.Initialize();
                     LogInfo($"DPC Tool Cell Watcher initialized - PCName: {dpcWatcher.PCName}, Cell: {dpcWatcher.CellPosition}");
                 }
                 catch (Exception ex)

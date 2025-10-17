@@ -6,8 +6,6 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
-using System.Diagnostics;
-using System.Threading.Tasks;
 
 namespace SystemUtilizationMonitor.Services
 {
@@ -73,17 +71,17 @@ namespace SystemUtilizationMonitor.Services
         public string CellPosition => cellPosition;
         public string ModuleType => moduleType;
 
-        public DPCToolCellWatcher()
-        {
-            Initialize();
-        }
+        // public DPCToolCellWatcher()
+        // {
+        //     Initialize();
+        // }
 
-        private void Initialize()
+        public void Initialize()
         {
             try
             {
-                // Get PC name from network location - using synchronous wrapper
-                pcName = GetPCNameFromNetwork().GetAwaiter().GetResult();
+                // Get PC name from network location
+                pcName = GetPCNameFromNetwork();
 
                 // If network retrieval fails, use local machine name
                 if (string.IsNullOrEmpty(pcName))
@@ -100,9 +98,9 @@ namespace SystemUtilizationMonitor.Services
                 int lastOctet = GetLastOctetIPv4();
                 if (lastOctet == -1)
                 {
-                    LogError("Failed to get last octet of IPv4 address");
-                    cellPosition = "UNKNOWN";
-                    moduleType = "UNKNOWN";
+                    LogInfo("Failed to get last octet of IPv4 address");
+                    cellPosition = "";
+                    moduleType = "";
                     return;
                 }
 
@@ -114,14 +112,14 @@ namespace SystemUtilizationMonitor.Services
             }
             catch (Exception ex)
             {
-                LogError($"Error initializing DPCToolCellWatcher: {ex.Message}");
+                LogInfo($"Error initializing DPCToolCellWatcher: {ex.Message}");
                 pcName = Environment.MachineName;
-                cellPosition = "ERROR";
-                moduleType = "ERROR";
+                cellPosition = "";
+                moduleType = "";
             }
         }
 
-        private async Task<string> GetPCNameFromNetwork()
+        private string GetPCNameFromNetwork()
         {
             string[] ipsToTry = { "10.250.0.100", "10.250.0.99" };
 
@@ -130,59 +128,21 @@ namespace SystemUtilizationMonitor.Services
                 try
                 {
                     string networkPath = $@"\\{ip}\c$\SUMInstall\PCinfo.txt";
-                    Console.WriteLine($"Attempting to read PC info from: {networkPath}");
+                    LogInfo($"Attempting to read PC info from: {networkPath}");
 
                     if (File.Exists(networkPath))
                     {
                         string content = File.ReadAllText(networkPath).Trim();
                         if (!string.IsNullOrEmpty(content))
                         {
-                            Console.WriteLine($"Successfully read PC name from {ip}: {content}");
-                            return content;
+                            LogInfo($"Successfully read PC name from {ip}: {content}");
                         }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"PCinfo.txt not found at {ip}, attempting to run PCinfo.bat...");
-
-                        const string PSEXEC_PATH = @"c:\SUMInstall\PsExec64.exe";
-                        var processInfo = new ProcessStartInfo
-                        {
-                            FileName = PSEXEC_PATH,
-                            Arguments = $@"\\{ip} -accepteula -nobanner cmd /c ""\\{ip}\c$\SUMInstall\PCinfo.bat""",
-                            UseShellExecute = false,
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true,
-                            CreateNoWindow = true
-                        };
-
-                        using (var process = new Process())
-                        {
-                            process.StartInfo = processInfo;
-                            process.Start();
-
-                            string output = await process.StandardOutput.ReadToEndAsync();
-                            string error = await process.StandardError.ReadToEndAsync();
-                            await process.WaitForExitAsync();
-
-                            if (!string.IsNullOrEmpty(error))
-                            {
-                                Console.WriteLine($"Error executing on {ip}: {error}");
-                            }
-
-                            string cleanOutput = output.Trim();
-
-                            if (!string.IsNullOrEmpty(cleanOutput))
-                            {
-                                Console.WriteLine($"Output from {ip}: {cleanOutput}");
-                                return cleanOutput;
-                            }
-                        }
+                        return content;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to read from {ip}: {ex.Message}");
+                    LogInfo($"Failed to read from {ip}: {ex.Message}");
                 }
             }
 
@@ -258,16 +218,16 @@ namespace SystemUtilizationMonitor.Services
             }
             else
             {
-                cellPosition = "UNSUPPORTED";
-                moduleType = "UNSUPPORTED";
-                LogError($"PC type not supported: {pcName}");
+                cellPosition = "";
+                moduleType = "";
+                LogInfo($"PC type not supported: {pcName}");
             }
 
             // If position not found in dictionary
-            if (string.IsNullOrEmpty(cellPosition) && moduleType != "UNSUPPORTED")
+            if (string.IsNullOrEmpty(cellPosition) && moduleType != "")
             {
-                cellPosition = "NOT_FOUND";
-                LogError($"Position not found for octet {lastOctetStr} in {moduleType}");
+                cellPosition = "";
+                LogInfo($"Position not found for octet {lastOctetStr} in {moduleType}");
             }
         }
 
@@ -290,24 +250,14 @@ namespace SystemUtilizationMonitor.Services
                     return lastOctet;
                 }
 
-                LogError("No suitable IPv4 address found with prefix 10.250.0.");
+                LogInfo("No suitable IPv4 address found with prefix 10.250.0.");
                 return -1;
             }
             catch (Exception ex)
             {
-                LogError($"Error getting last octet: {ex.Message}");
+                LogInfo($"Error getting last octet: {ex.Message}");
                 return -1;
             }
-        }
-
-        private void LogInfo(string message)
-        {
-            Console.WriteLine($"[DPCToolCellWatcher] INFO: {message}");
-        }
-
-        private void LogError(string message)
-        {
-            Console.WriteLine($"[DPCToolCellWatcher] ERROR: {message}");
         }
 
         // Static method for easy access
@@ -316,5 +266,19 @@ namespace SystemUtilizationMonitor.Services
             var watcher = new DPCToolCellWatcher();
             return (watcher.PCName, watcher.CellPosition);
         }
+
+        private static void LogInfo(string message)
+        {
+            try
+            {
+                string logInfo = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] INFO: {message}{Environment.NewLine}";
+                string logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Intel", "SystemUtilizationMonitor", "Monitoring_logs.txt");
+                File.AppendAllText(logPath, logInfo);
+            }
+            catch { }
+        }
     }
+
+    
 }
