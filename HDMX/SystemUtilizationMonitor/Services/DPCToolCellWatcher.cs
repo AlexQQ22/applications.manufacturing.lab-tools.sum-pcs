@@ -101,8 +101,8 @@ namespace SystemUtilizationMonitor.Services
                 if (lastOctet == -1)
                 {
                     LogError("Failed to get last octet of IPv4 address");
-                    cellPosition = "UNKNOWN";
-                    moduleType = "UNKNOWN";
+                    cellPosition = "";
+                    moduleType = "";
                     return;
                 }
 
@@ -116,8 +116,8 @@ namespace SystemUtilizationMonitor.Services
             {
                 LogError($"Error initializing DPCToolCellWatcher: {ex.Message}");
                 pcName = Environment.MachineName;
-                cellPosition = "ERROR";
-                moduleType = "ERROR";
+                cellPosition = "";
+                moduleType = "";
             }
         }
 
@@ -258,15 +258,15 @@ namespace SystemUtilizationMonitor.Services
             }
             else
             {
-                cellPosition = "UNSUPPORTED";
-                moduleType = "UNSUPPORTED";
+                cellPosition = "";
+                moduleType = "";
                 LogError($"PC type not supported: {pcName}");
             }
 
             // If position not found in dictionary
-            if (string.IsNullOrEmpty(cellPosition) && moduleType != "UNSUPPORTED")
+            if (string.IsNullOrEmpty(cellPosition) && moduleType != "")
             {
-                cellPosition = "NOT_FOUND";
+                cellPosition = "";
                 LogError($"Position not found for octet {lastOctetStr} in {moduleType}");
             }
         }
