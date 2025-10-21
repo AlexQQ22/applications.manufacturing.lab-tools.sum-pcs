@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 namespace SystemUtilizationMonitor.Services
 {
@@ -81,7 +82,7 @@ namespace SystemUtilizationMonitor.Services
             try
             {
                 // Get PC name from network location
-                pcName = GetPCNameFromNetwork();
+                pcName = GetPCNameFromNetwork().GetAwaiter().GetResult();
 
                 // If network retrieval fails, use local machine name
                 if (string.IsNullOrEmpty(pcName))
@@ -119,7 +120,7 @@ namespace SystemUtilizationMonitor.Services
             }
         }
 
-        private string GetPCNameFromNetwork()
+        private async Task<string> GetPCNameFromNetwork()
         {
             string[] ipsToTry = { "10.250.0.100", "10.250.0.99" };
 
@@ -136,8 +137,46 @@ namespace SystemUtilizationMonitor.Services
                         if (!string.IsNullOrEmpty(content))
                         {
                             LogInfo($"Successfully read PC name from {ip}: {content}");
+                            return content;
                         }
-                        return content;
+                    }
+                    else
+                    {
+                        LogInfo($"PCinfo.txt not found at {ip}, attempting to run PCinfo.bat...");
+
+                        const string PSEXEC_PATH = @"c:\SUMInstall\PsExec64.exe";
+                        var processInfo = new ProcessStartInfo
+                        {
+                            FileName = PSEXEC_PATH,
+                            Arguments = $@"\\{ip} -accepteula -nobanner cmd /c ""\\{ip}\c$\SUMInstall\PCinfo.bat""",
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            CreateNoWindow = true
+                        };
+
+                        using (var process = new Process())
+                        {
+                            process.StartInfo = processInfo;
+                            process.Start();
+
+                            string output = await process.StandardOutput.ReadToEndAsync();
+                            string error = await process.StandardError.ReadToEndAsync();
+                            await process.WaitForExitAsync();
+
+                            if (!string.IsNullOrEmpty(error))
+                            {
+                                LogInfo($"Error executing on {ip}: {error}");
+                            }
+
+                            string cleanOutput = output.Trim();
+
+                            if (!string.IsNullOrEmpty(cleanOutput))
+                            {
+                                LogInfo($"Output from {ip}: {cleanOutput}");
+                                return cleanOutput;
+                            }
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -280,5 +319,5 @@ namespace SystemUtilizationMonitor.Services
         }
     }
 
-    
+
 }
