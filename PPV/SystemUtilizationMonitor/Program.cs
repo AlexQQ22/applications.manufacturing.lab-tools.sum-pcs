@@ -136,6 +136,7 @@ namespace SystemUtilizationMonitor
         {
             while (!shouldStop)
             {
+                dpcWatcher.Initialize();
                 if (string.IsNullOrEmpty(dpcWatcher.PCName))
                 {
                     try
