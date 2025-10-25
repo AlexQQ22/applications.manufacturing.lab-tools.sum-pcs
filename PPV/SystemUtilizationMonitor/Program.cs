@@ -43,6 +43,29 @@ namespace SystemUtilizationMonitor
             {
                 // Cargar configuración de la aplicación
                 LoadConfiguration();
+
+                var dpcWatcher = new DPCToolCellWatcher();
+
+                while (string.IsNullOrEmpty(dpcWatcher.PCName) || string.IsNullOrEmpty(dpcWatcher.CellPosition))
+                {
+                    LogInfo("Attempting to initialize DPCToolCellWatcher...");
+                    dpcWatcher.Initialize();
+
+                    if (!string.IsNullOrEmpty(dpcWatcher.PCName) && !string.IsNullOrEmpty(dpcWatcher.CellPosition))
+                    {
+                        LogInfo("Successfully initialized!");
+                        LogInfo($"PC Name: {dpcWatcher.PCName}");
+                        LogInfo($"Cell Position: {dpcWatcher.CellPosition}");
+                        LogInfo($"Module Type: {dpcWatcher.ModuleType}");
+                        break;
+                    }
+
+                    LogError("Initialization failed. Retrying in 5 seconds...");
+                    System.Threading.Thread.Sleep(5000); // Wait 5 seconds before retry
+                }
+
+                // Continue with rest of your program logic here
+                LogInfo("DPCToolCellWatcher initialization complete.");
                 try
                 {
                     dpcWatcher = new DPCToolCellWatcher();
@@ -113,18 +136,19 @@ namespace SystemUtilizationMonitor
         {
             while (!shouldStop)
             {
-                // if (string.IsNullOrEmpty(dpcWatcher.PCName)) {
-                //     try
-                //     {
-                //         dpcWatcher = new DPCToolCellWatcher();
-                //         LogInfo($"DPC Tool Cell Watcher initialized - PCName: {dpcWatcher.PCName}, Cell: {dpcWatcher.CellPosition}");
-                //     }
-                //     catch (Exception ex)
-                //     {
-                //         LogError($"Failed to initialize DPC Tool Cell Watcher: {ex.Message}");
-                //         dpcWatcher = null;
-                //     }
-                // }
+                if (string.IsNullOrEmpty(dpcWatcher.PCName))
+                {
+                    try
+                    {
+                        dpcWatcher = new DPCToolCellWatcher();
+                        LogInfo($"DPC Tool Cell Watcher initialized - PCName: {dpcWatcher.PCName}, Cell: {dpcWatcher.CellPosition}");
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError($"Failed to initialize DPC Tool Cell Watcher: {ex.Message}");
+                        dpcWatcher = null;
+                    }
+                }
                 var startTime = lastEndTime;
                 logInfo = string.Empty;
 
@@ -565,8 +589,8 @@ namespace SystemUtilizationMonitor
             }
             else
             {
-                timeFrame.PCName = Environment.MachineName;
-                timeFrame.Cell = "UNKNOWN";
+                timeFrame.PCName = "";
+                timeFrame.Cell = "";
             }
             // Recopilar eventos de entrada (mouse y teclado)
             if (inputHook != null)

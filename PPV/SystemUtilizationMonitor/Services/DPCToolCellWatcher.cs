@@ -87,7 +87,7 @@ namespace SystemUtilizationMonitor.Services
                 // If network retrieval fails, use local machine name
                 if (string.IsNullOrEmpty(pcName))
                 {
-                    pcName = Environment.MachineName;
+                    pcName = "";
                     LogInfo($"Using local machine name: {pcName}");
                 }
                 else
@@ -114,7 +114,7 @@ namespace SystemUtilizationMonitor.Services
             catch (Exception ex)
             {
                 LogInfo($"Error initializing DPCToolCellWatcher: {ex.Message}");
-                pcName = Environment.MachineName;
+                pcName = "";
                 cellPosition = "";
                 moduleType = "";
             }

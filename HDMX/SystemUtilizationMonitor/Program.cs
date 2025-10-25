@@ -450,8 +450,8 @@ namespace SystemUtilizationMonitor
             }
             else
             {
-                timeFrame.PCName = Environment.MachineName;
-                timeFrame.Cell = "UNKNOWN";
+                timeFrame.PCName = "";
+                timeFrame.Cell = "";
             }
             
             if (inputHook != null)
