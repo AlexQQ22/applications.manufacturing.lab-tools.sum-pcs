@@ -72,10 +72,10 @@ namespace SystemUtilizationMonitor.Services
         public string CellPosition => cellPosition;
         public string ModuleType => moduleType;
 
-        // public DPCToolCellWatcher()
-        // {
-        //     Initialize();
-        // }
+        public DPCToolCellWatcher()
+        {
+            Initialize();
+        }
 
         public void Initialize()
         {

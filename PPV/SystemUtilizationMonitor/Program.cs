@@ -44,7 +44,7 @@ namespace SystemUtilizationMonitor
                 // Cargar configuración de la aplicación
                 LoadConfiguration();
 
-                var dpcWatcher = new DPCToolCellWatcher();
+                dpcWatcher = new DPCToolCellWatcher();
 
                 while (string.IsNullOrEmpty(dpcWatcher.PCName) || string.IsNullOrEmpty(dpcWatcher.CellPosition))
                 {
