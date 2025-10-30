@@ -219,6 +219,24 @@ namespace SystemUtilizationMonitor.Services
                     LogInfo("Detected HST X24 module");
                 }
             }
+            else if (Regex.IsMatch(pcName, @"\w\w\d\dPDC\d\d\d\d", RegexOptions.IgnoreCase))
+            {
+                if (HSTx24.ContainsKey(lastOctetStr))
+                {
+                    cellPosition = HSTx24[lastOctetStr];
+                    moduleType = "PDC";
+                    LogInfo("Detected PDC module");
+                }
+            }
+            else if (Regex.IsMatch(pcName, @"\w\w\d\dICDC\d\d\d\d", RegexOptions.IgnoreCase))
+            {
+                if (HSTx24.ContainsKey(lastOctetStr))
+                {
+                    cellPosition = HSTx24[lastOctetStr];
+                    moduleType = "ICDC";
+                    LogInfo("Detected ICDC module");
+                }
+            }
             else if (Regex.IsMatch(pcName, @"\w\w\d\d(H|D)PTC\d\d\d\d", RegexOptions.IgnoreCase))
             {
                 if (PTCx5.ContainsKey(lastOctetStr))
