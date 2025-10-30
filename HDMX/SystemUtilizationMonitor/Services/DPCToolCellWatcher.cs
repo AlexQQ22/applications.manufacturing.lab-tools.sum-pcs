@@ -7,7 +7,6 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
-using System.Threading.Tasks;
 
 namespace SystemUtilizationMonitor.Services
 {
@@ -78,17 +77,17 @@ namespace SystemUtilizationMonitor.Services
             Initialize();
         }
 
-        private void Initialize()
+        public void Initialize()
         {
             try
             {
-                // Get PC name from network location - using synchronous wrapper
+                // Get PC name from network location
                 pcName = GetPCNameFromNetwork().GetAwaiter().GetResult();
 
                 // If network retrieval fails, use local machine name
                 if (string.IsNullOrEmpty(pcName))
                 {
-                    pcName = Environment.MachineName;
+                    pcName = "";
                     LogInfo($"Using local machine name: {pcName}");
                 }
                 else
@@ -100,7 +99,7 @@ namespace SystemUtilizationMonitor.Services
                 int lastOctet = GetLastOctetIPv4();
                 if (lastOctet == -1)
                 {
-                    LogError("Failed to get last octet of IPv4 address");
+                    LogInfo("Failed to get last octet of IPv4 address");
                     cellPosition = "";
                     moduleType = "";
                     return;
@@ -114,8 +113,8 @@ namespace SystemUtilizationMonitor.Services
             }
             catch (Exception ex)
             {
-                LogError($"Error initializing DPCToolCellWatcher: {ex.Message}");
-                pcName = Environment.MachineName;
+                LogInfo($"Error initializing DPCToolCellWatcher: {ex.Message}");
+                pcName = "";
                 cellPosition = "";
                 moduleType = "";
             }
@@ -130,20 +129,20 @@ namespace SystemUtilizationMonitor.Services
                 try
                 {
                     string networkPath = $@"\\{ip}\c$\SUMInstall\PCinfo.txt";
-                    Console.WriteLine($"Attempting to read PC info from: {networkPath}");
+                    LogInfo($"Attempting to read PC info from: {networkPath}");
 
                     if (File.Exists(networkPath))
                     {
                         string content = File.ReadAllText(networkPath).Trim();
                         if (!string.IsNullOrEmpty(content))
                         {
-                            Console.WriteLine($"Successfully read PC name from {ip}: {content}");
+                            LogInfo($"Successfully read PC name from {ip}: {content}");
                             return content;
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"PCinfo.txt not found at {ip}, attempting to run PCinfo.bat...");
+                        LogInfo($"PCinfo.txt not found at {ip}, attempting to run PCinfo.bat...");
 
                         const string PSEXEC_PATH = @"c:\SUMInstall\PsExec64.exe";
                         var processInfo = new ProcessStartInfo
@@ -167,14 +166,14 @@ namespace SystemUtilizationMonitor.Services
 
                             if (!string.IsNullOrEmpty(error))
                             {
-                                Console.WriteLine($"Error executing on {ip}: {error}");
+                                LogInfo($"Error executing on {ip}: {error}");
                             }
 
                             string cleanOutput = output.Trim();
 
                             if (!string.IsNullOrEmpty(cleanOutput))
                             {
-                                Console.WriteLine($"Output from {ip}: {cleanOutput}");
+                                LogInfo($"Output from {ip}: {cleanOutput}");
                                 return cleanOutput;
                             }
                         }
@@ -182,7 +181,7 @@ namespace SystemUtilizationMonitor.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to read from {ip}: {ex.Message}");
+                    LogInfo($"Failed to read from {ip}: {ex.Message}");
                 }
             }
 
@@ -260,14 +259,14 @@ namespace SystemUtilizationMonitor.Services
             {
                 cellPosition = "";
                 moduleType = "";
-                LogError($"PC type not supported: {pcName}");
+                LogInfo($"PC type not supported: {pcName}");
             }
 
             // If position not found in dictionary
             if (string.IsNullOrEmpty(cellPosition) && moduleType != "")
             {
                 cellPosition = "";
-                LogError($"Position not found for octet {lastOctetStr} in {moduleType}");
+                LogInfo($"Position not found for octet {lastOctetStr} in {moduleType}");
             }
         }
 
@@ -290,24 +289,14 @@ namespace SystemUtilizationMonitor.Services
                     return lastOctet;
                 }
 
-                LogError("No suitable IPv4 address found with prefix 10.250.0.");
+                LogInfo("No suitable IPv4 address found with prefix 10.250.0.");
                 return -1;
             }
             catch (Exception ex)
             {
-                LogError($"Error getting last octet: {ex.Message}");
+                LogInfo($"Error getting last octet: {ex.Message}");
                 return -1;
             }
-        }
-
-        private void LogInfo(string message)
-        {
-            Console.WriteLine($"[DPCToolCellWatcher] INFO: {message}");
-        }
-
-        private void LogError(string message)
-        {
-            Console.WriteLine($"[DPCToolCellWatcher] ERROR: {message}");
         }
 
         // Static method for easy access
@@ -316,5 +305,19 @@ namespace SystemUtilizationMonitor.Services
             var watcher = new DPCToolCellWatcher();
             return (watcher.PCName, watcher.CellPosition);
         }
+
+        private static void LogInfo(string message)
+        {
+            try
+            {
+                string logInfo = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] INFO: {message}{Environment.NewLine}";
+                string logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Intel", "SystemUtilizationMonitor", "Monitoring_logs.txt");
+                File.AppendAllText(logPath, logInfo);
+            }
+            catch { }
+        }
     }
+
+
 }
