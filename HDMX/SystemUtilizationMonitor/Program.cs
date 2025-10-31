@@ -67,6 +67,7 @@ namespace SystemUtilizationMonitor
                     }
 
                     LogError("Initialization failed. Retrying in 5 seconds...");
+                    LogError($"This is what we have: {dpcWatcher.PCName}, {dpcWatcher.CellPosition}");
                     System.Threading.Thread.Sleep(5000); // Wait 5 seconds before retry
                 }
 
