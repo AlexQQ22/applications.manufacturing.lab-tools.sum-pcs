@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj": {}
+    "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\RVP\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj": {}
   },
   "projects": {
-    "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj": {
+    "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\RVP\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj",
+        "projectUniqueName": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\RVP\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj",
         "projectName": "SystemUtilizationMonitor",
-        "projectPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj",
+        "projectPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\RVP\\SystemUtilizationMonitor\\SystemUtilizationMonitor.csproj",
         "packagesPath": "C:\\Users\\aquesad1\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\PPV\\SystemUtilizationMonitor\\obj\\",
+        "outputPath": "C:\\Users\\aquesad1\\OneDrive - Intel Corporation\\Desktop\\applications.manufacturing.lab-tools.sum-pcs\\RVP\\SystemUtilizationMonitor\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\aquesad1\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -44,6 +44,10 @@
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
           "dependencies": {
+            "Cake.Powershell": {
+              "target": "Package",
+              "version": "[4.0.0, )"
+            },
             "MouseKeyHook": {
               "target": "Package",
               "version": "[5.6.0, )"

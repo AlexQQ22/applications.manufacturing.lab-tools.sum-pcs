@@ -1,2 +1,0 @@
-C:\Users\aquesad1\OneDrive - Intel Corporation\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitor\publish\SystemUtilizationMonitor.pdb
-C:\Users\aquesad1\OneDrive - Intel Corporation\Desktop\applications.manufacturing.lab-tools.sum-pcs\SystemUtilizationMonitor\publish\SystemUtilizationMonitor.exe
