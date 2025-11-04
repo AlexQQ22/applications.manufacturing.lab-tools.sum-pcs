@@ -37,6 +37,16 @@ namespace SystemUtilizationMonitor.Services
             {"19","D101"}, {"20","D201"}, {"21","D301"}, {"22","D401"}, {"23","D501"}, {"24","D601"}
         };
 
+        private static readonly Dictionary<string, string> HDMx36 = new Dictionary<string, string>
+        {
+            {"1","LA101"}, {"2","LA201"}, {"3","LA301"}, {"4","LA401"}, {"5","LA501"}, {"6","LA601"},
+            {"7","RA101"}, {"8","RA201"}, {"9","RA301"}, {"10","RA401"}, {"11","RA501"}, {"12","RA601"},
+            {"13","LB101"}, {"14","LB201"}, {"15","LB301"}, {"16","LB401"}, {"17","LB501"}, {"18","LB601"},
+            {"19","RB101"}, {"20","RB201"}, {"21","RB301"}, {"22","RB401"}, {"23","RB501"}, {"24","RB601"},
+            {"25","LC101"}, {"26","LC201"}, {"27","LC301"}, {"28","LC401"}, {"29","LC501"}, {"30","LC601"},
+            {"31","RC101"}, {"32","RC201"}, {"33","RC301"}, {"34","RC401"}, {"35","RC501"}, {"36","RC601"}
+        };
+
         private static readonly Dictionary<string, string> SSTx20 = new Dictionary<string, string>
         {
             {"1","A101"}, {"2","A201"}, {"3","A301"}, {"4","A401"},
@@ -253,6 +263,15 @@ namespace SystemUtilizationMonitor.Services
                     cellPosition = SSTx20[lastOctetStr];
                     moduleType = "SST_X20";
                     LogInfo("Detected SST X20 module");
+                }
+            }
+            else if (Regex.IsMatch(pcName, @"HBI", RegexOptions.IgnoreCase))
+            {
+                if (HDMx36.ContainsKey(lastOctetStr))
+                {
+                    cellPosition = HDMx36[lastOctetStr];
+                    moduleType = "HDMx36";
+                    LogInfo("Detected DHBI X36 module");
                 }
             }
             else if (Regex.IsMatch(pcName, @"\w\w\d\d(TPBT|TPPV)\d\d\d\dE*N*", RegexOptions.IgnoreCase))

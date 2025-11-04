@@ -22,7 +22,7 @@ namespace SystemUtilizationMonitor
         private static readonly Dictionary<string, uint> basicFileChanges = new Dictionary<string, uint>();
         private static readonly object lockObj = new object();
         private static MonitorConfiguration config;
- 
+
         private static bool shouldStop = false;
         private static string outputDirectory;
         private static string currentOutputFile;
@@ -101,7 +101,7 @@ namespace SystemUtilizationMonitor
                     Console.WriteLine($"Hook Constants: Keyboard={appConfig.Hook.WH_KEYBOARD_LL}, Mouse={appConfig.Hook.WH_MOUSE_LL}");
                     Console.WriteLine($"Mouse Constants: LButton={appConfig.Mouse.WM_LBUTTONDOWN}, RButton={appConfig.Mouse.WM_RBUTTONDOWN}, Move={appConfig.Mouse.WM_MOUSEMOVE}");
                     Console.WriteLine($"Keyboard Constants: KeyDown={appConfig.Keyboard.WM_KEYDOWN}, SysKeyDown={appConfig.Keyboard.WM_SYSKEYDOWN}");
-                     Console.WriteLine($"Monitoring Configuration: RecordInterval={appConfig.Monitoring.RecordIntervalMinutes} minutes");
+                    Console.WriteLine($"Monitoring Configuration: RecordInterval={appConfig.Monitoring.RecordIntervalMinutes} minutes");
                     Console.WriteLine("Press Ctrl+C to stop...");
                     Console.WriteLine("==========================================");
                 }
@@ -371,7 +371,7 @@ namespace SystemUtilizationMonitor
                 LogError("Error during file cleanup: " + ex.Message);
             }
         }
- 
+
         private static void MonitoringLoop()
         {
             while (!shouldStop)
@@ -446,7 +446,7 @@ namespace SystemUtilizationMonitor
                 timeFrame.MouseEvents = inputHook.GetMouseEventCount();
                 timeFrame.KeyboardEvents = inputHook.GetKeyboardEventCount();
             }
- 
+
             timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
             return timeFrame;
         }
@@ -558,7 +558,7 @@ namespace SystemUtilizationMonitor
                 if (Directory.Exists(hdmxPath))
                 {
                     LogInfo("HDMX machine detected - checking TesterHwConfig.xml");
-                    string product = GetProductFromHDMX(hdmxPath);
+                    string product = GetProductFromHBI(hdmxPath);
                     if (!string.IsNullOrEmpty(product))
                     {
                         LogInfo($"Successfully retrieved product from HDMX: {product}");
@@ -594,46 +594,7 @@ namespace SystemUtilizationMonitor
                 return "ERROR_GETTING_PRODUCT";
             }
         }
-        private static string GetProductFromHDMX2(string hdmxPath)
-        {
-            try
-            {
-                string configFilePath = Path.Combine(hdmxPath, "TesterHwConfig.xml");
-                if (!File.Exists(configFilePath))
-                {
-                    LogInfo($"TesterHwConfig.xml not found at: {configFilePath}");
-                    return "";
-                }
-
-                LogInfo($"Reading TesterHwConfig.xml from: {configFilePath}");
-                string xmlContent = File.ReadAllText(configFilePath);
-
-                // Nuevo regex para buscar DUTSocketSerialNumber0
-                var dutSocketSerialRegex = new System.Text.RegularExpressions.Regex(
-                    @"<SupplementalData\s+Name=""DUTSocketSerialNumber0""\s+Value=""([^""]+)""",
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
-                );
-
-                var match = dutSocketSerialRegex.Match(xmlContent);
-                if (match.Success)
-                {
-                    string dutSerialNumber = match.Groups[1].Value.Trim();
-                    LogInfo($"Found DUTSocketSerialNumber0 in HDMX config: {dutSerialNumber}");
-                    return dutSerialNumber;
-                }
-                else
-                {
-                    LogInfo("DUTSocketSerialNumber0 pattern not found in TesterHwConfig.xml");
-                    return "";
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError($"Error reading HDMX config: {ex.Message}");
-                return "";
-            }
-        }
-        private static string GetProductFromHDMX(string hdmxPath)
+        private static string GetProductFromHBI(string hdmxPath)
         {
             try
             {
@@ -650,7 +611,7 @@ namespace SystemUtilizationMonitor
                 string xmlContent = File.ReadAllText(configFilePath);
 
                 var tiuSerialNumberRegex = new System.Text.RegularExpressions.Regex(
-                    @"BoardName=""TIUEEPROM1""[^>]*SerialNumber=""([^""]+)""",
+                    @"BoardName=""HBITIU""[^>]*SerialNumber=""([^""]+)""|SerialNumber=""([^""]+)""[^>]*BoardName=""HBITIU""",
                     System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
                 );
 
@@ -664,7 +625,6 @@ namespace SystemUtilizationMonitor
                 }
                 else
                 {
-                    // try GetProductFromHDMX2, if also fails then:
                     LogInfo("TIU SerialNumber pattern not found in TesterHwConfig.xml");
                     return "";
                 }
