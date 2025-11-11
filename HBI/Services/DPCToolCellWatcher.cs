@@ -46,7 +46,16 @@ namespace SystemUtilizationMonitor.Services
             {"25","LC101"}, {"26","LC201"}, {"27","LC301"}, {"28","LC401"}, {"29","LC501"}, {"30","LC601"},
             {"31","RC101"}, {"32","RC201"}, {"33","RC301"}, {"34","RC401"}, {"35","RC501"}, {"36","RC601"}
         };
+        private static readonly Dictionary<string, string> DMBIx12 = new Dictionary<string, string>
+        {
+            {"1","LA101"}, {"2","LA201"}, {"3","LA301"}, {"4","LA401"}, {"5","LA501"}, {"6","LA601"},
+            {"7","RA101"}, {"8","RA201"}, {"9","RA301"}, {"10","RA401"}, {"11","RA501"}, {"12","RA601"}
+        };
 
+        private static readonly Dictionary<string, string> HBDCx2 = new Dictionary<string, string>
+        {
+            {"1","LA101"}, {"2","LA201"}
+        };
         private static readonly Dictionary<string, string> SSTx20 = new Dictionary<string, string>
         {
             {"1","A101"}, {"2","A201"}, {"3","A301"}, {"4","A401"},
@@ -265,13 +274,31 @@ namespace SystemUtilizationMonitor.Services
                     LogInfo("Detected SST X20 module");
                 }
             }
+            else if (Regex.IsMatch(pcName, @"HBDC", RegexOptions.IgnoreCase))
+            {
+                if (HBDCx2.ContainsKey(lastOctetStr))
+                {
+                    cellPosition = HBDCx2[lastOctetStr];
+                    moduleType = "HBDCx2";
+                    LogInfo("Detected HBDC X2 module");
+                }
+            }
+            else if (Regex.IsMatch(pcName, @"DMBI", RegexOptions.IgnoreCase))
+            {
+                if (DMBIx12.ContainsKey(lastOctetStr))
+                {
+                    cellPosition = DMBIx12[lastOctetStr];
+                    moduleType = "DMBIx12";
+                    LogInfo("Detected HMBI X12 module");
+                }
+            }
             else if (Regex.IsMatch(pcName, @"HBI", RegexOptions.IgnoreCase))
             {
                 if (HDMx36.ContainsKey(lastOctetStr))
                 {
                     cellPosition = HDMx36[lastOctetStr];
                     moduleType = "HDMx36";
-                    LogInfo("Detected DHBI X36 module");
+                    LogInfo("Detected HBI X36 module");
                 }
             }
             else if (Regex.IsMatch(pcName, @"\w\w\d\d(TPBT|TPPV)\d\d\d\dE*N*", RegexOptions.IgnoreCase))

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SystemUtilizationMonitor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+03c2ec116fd4e1edc4be1a8ebcdd2cbd7d032406")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6435a627bba29255941dc3d9dbcbdd4c9eb45174")]
 [assembly: System.Reflection.AssemblyProductAttribute("SystemUtilizationMonitor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SystemUtilizationMonitor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
