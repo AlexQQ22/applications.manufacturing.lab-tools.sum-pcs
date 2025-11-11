@@ -191,7 +191,7 @@ namespace SystemUtilizationMonitor
         private static void SetupOutputDirectory()
         {
             // Try to use the specified network path if configured
-            string networkPath = @"\\amr.corp.intel.com\ec\proj\mdl\cr\intel\ppv_transfer_data\SUMDEALEX\RVP";
+            string networkPath = @"\\amr.corp.intel.com\ec\proj\mdl\cr\intel\hdmx_db\mae\SUM\RVP";
             bool useNetworkPath = false;
 
             try
