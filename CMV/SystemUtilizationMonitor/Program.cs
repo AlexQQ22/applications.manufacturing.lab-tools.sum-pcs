@@ -128,13 +128,7 @@ namespace SystemUtilizationMonitor
         {
             string configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Intel", "SystemUtilizationMonitor", "SystemUtilizationConfig.json");
-
-            if (!File.Exists(configPath))
-            {
-
-                CreateDefaultConfiguration(configPath);
-            }
-
+            CreateDefaultConfiguration(configPath);
             string jsonContent = File.ReadAllText(configPath);
             appConfig = JsonConvert.DeserializeObject<ConfigurationModel>(jsonContent);
         }
@@ -146,7 +140,14 @@ namespace SystemUtilizationMonitor
 
             var defaultConfig = new ConfigurationModel
             {
-                Jose = new Dictionary<string, MonitorTxtConfig>(),
+                Jose = new Dictionary<string, MonitorTxtConfig>
+                {
+                    ["montior_txt_priority"] = new MonitorTxtConfig
+                    {
+                        FilePath = "C:\\STHI\\logs\\detailed_drt_log.txt",
+                        NoContent = "CommunicationNamespace"
+                    }
+                },
                 SumPOR = new SumPORConfig
                 {
                     ShouldReadLogFiles = true,
@@ -393,17 +394,7 @@ namespace SystemUtilizationMonitor
                 timeFrame.KeyboardEvents = inputHook.GetKeyboardEventCount();
             }
 
-            // Only monitor files if Jose configuration has entries
-            if (appConfig.Jose != null && appConfig.Jose.Count > 0)
-            {
-                timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
-                LogInfo("File monitoring completed based on Jose configuration");
-            }
-            else
-            {
-                timeFrame.FileChanges = string.Empty;
-                LogInfo("No Jose configuration found, skipping file monitoring");
-            }
+            timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
 
             return timeFrame;
         }

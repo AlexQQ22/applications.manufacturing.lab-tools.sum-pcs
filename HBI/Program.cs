@@ -163,14 +163,8 @@ namespace SystemUtilizationMonitor
         private static void LoadConfiguration()
         {
             string configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Intel", "SystemUtilizationMonitor", "SystemUtilizationConfig.json");
-
-            if (!File.Exists(configPath))
-            {
-
-                CreateDefaultConfiguration(configPath);
-            }
-
+                "Intel", "SystemUtilizationMonitor", "SystemUtilizationConfig.json"); 
+            CreateDefaultConfiguration(configPath); 
             string jsonContent = File.ReadAllText(configPath);
             appConfig = JsonConvert.DeserializeObject<ConfigurationModel>(jsonContent);
         }
