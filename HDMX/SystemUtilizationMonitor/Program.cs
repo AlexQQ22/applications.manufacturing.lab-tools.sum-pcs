@@ -166,9 +166,9 @@ namespace SystemUtilizationMonitor
         {
             string configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Intel", "SystemUtilizationMonitor", "SystemUtilizationConfig.json");
- 
+
             CreateDefaultConfiguration(configPath);
-            
+
             string jsonContent = File.ReadAllText(configPath);
             appConfig = JsonConvert.DeserializeObject<ConfigurationModel>(jsonContent);
         }
@@ -556,37 +556,143 @@ namespace SystemUtilizationMonitor
                 LogError("Error writing to file: " + ex.Message);
             }
         }
+        // Add this constant at the top of the Program class with other private static fields
+        private const int MAX_LOG_LINES = 80000;
+        private const int LINES_TO_KEEP = 70000; // Keep 70k lines when trimming
+        private static readonly object logLock = new object();
 
+        /// <summary>
+        /// Registra mensaje de información en consola y archivo de log
+        /// </summary>
+        /// <param name="message">Mensaje a registrar</param>
         private static void LogInfo(string message)
         {
-
             if (appConfig?.SumPOR?.Debug == true)
-            {
                 Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] INFO: {message}");
-            }
 
             try
             {
-                logInfo = logInfo + $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] INFO: {message}{Environment.NewLine} \n";
+                string logPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Intel", "SystemUtilizationMonitor", "Monitoring_logs.txt");
 
+                string logEntry = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] INFO: {message}{Environment.NewLine}";
+
+                WriteLogWithRotation(logPath, logEntry);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                if (appConfig?.SumPOR?.Debug == true)
+                    Console.WriteLine($"Failed to write log: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// Registra mensaje de error en consola y archivo de log
+        /// </summary>
+        /// <param name="message">Mensaje de error a registrar</param>
         private static void LogError(string message)
         {
-
             if (appConfig?.SumPOR?.Debug == true)
-            {
                 Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] ERROR: {message}");
-            }
 
             try
             {
-                logInfo = logInfo + $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ERROR: {message}{Environment.NewLine} \n";
+                string logPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Intel", "SystemUtilizationMonitor", "Monitoring_logs.txt");
 
+                string logEntry = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ERROR: {message}{Environment.NewLine}";
+
+                WriteLogWithRotation(logPath, logEntry);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                if (appConfig?.SumPOR?.Debug == true)
+                    Console.WriteLine($"Failed to write log: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Escribe al archivo de log y rota si excede el límite de líneas
+        /// </summary>
+        /// <param name="logPath">Ruta del archivo de log</param>
+        /// <param name="logEntry">Entrada a escribir</param>
+        private static void WriteLogWithRotation(string logPath, string logEntry)
+        {
+            lock (logLock)
+            {
+                // Ensure directory exists
+                string logDir = Path.GetDirectoryName(logPath);
+                if (!Directory.Exists(logDir))
+                    Directory.CreateDirectory(logDir);
+
+                // Check if rotation is needed
+                if (File.Exists(logPath))
+                {
+                    int lineCount = CountLines(logPath);
+
+                    if (lineCount >= MAX_LOG_LINES)
+                    {
+                        RotateLogFile(logPath);
+                    }
+                }
+
+                // Append the new log entry
+                File.AppendAllText(logPath, logEntry);
+            }
+        }
+
+        /// <summary>
+        /// Cuenta las líneas en un archivo de manera eficiente
+        /// </summary>
+        /// <param name="filePath">Ruta del archivo</param>
+        /// <returns>Número de líneas</returns>
+        private static int CountLines(string filePath)
+        {
+            int count = 0;
+            using (var reader = new StreamReader(filePath))
+            {
+                while (reader.ReadLine() != null)
+                    count++;
+            }
+            return count;
+        }
+
+        /// <summary>
+        /// Rota el archivo de log manteniendo solo las líneas más recientes
+        /// </summary>
+        /// <param name="logPath">Ruta del archivo de log</param>
+        private static void RotateLogFile(string logPath)
+        {
+            try
+            {
+                string tempPath = logPath + ".tmp";
+
+                // Read all lines
+                var allLines = File.ReadAllLines(logPath);
+
+                // Calculate how many lines to skip
+                int linesToSkip = Math.Max(0, allLines.Length - LINES_TO_KEEP);
+
+                // Keep only the most recent lines
+                var linesToKeep = allLines.Skip(linesToSkip);
+
+                // Write to temporary file
+                File.WriteAllLines(tempPath, linesToKeep);
+
+                // Replace original file
+                File.Delete(logPath);
+                File.Move(tempPath, logPath);
+
+                if (appConfig?.SumPOR?.Debug == true)
+                    Console.WriteLine($"Log file rotated: removed {linesToSkip} oldest lines, kept {LINES_TO_KEEP} lines");
+            }
+            catch (Exception ex)
+            {
+                if (appConfig?.SumPOR?.Debug == true)
+                    Console.WriteLine($"Failed to rotate log file: {ex.Message}");
+            }
         }
 
         private static void Cleanup()
