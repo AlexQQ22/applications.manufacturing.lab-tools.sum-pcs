@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -140,21 +140,23 @@ namespace SystemUtilizationMonitor
             // Ensure directory exists
             Directory.CreateDirectory(Path.GetDirectoryName(configPath));
 
+            var joseConfig = new Dictionary<string, MonitorTxtConfig>
+            {
+                ["montior_txt_priority"] = new MonitorTxtConfig
+                {
+                    FilePath = "C:\\STHI\\logs\\drt_log.txt",
+                    NoContent = "SysCPU" //;WARN
+                },
+                ["montior_txt_priority_2"] = new MonitorTxtConfig
+                {
+                    FilePath = "C:\\STHI\\logs\\detailed_drt_log.txt",
+                    NoContent = "SysCPU" //;WARN
+                }
+            };
+
             var defaultConfig = new ConfigurationModel
             {
-                Jose = new Dictionary<string, MonitorTxtConfig>
-                {
-                    ["montior_txt_priority"] = new MonitorTxtConfig
-                    {
-                        FilePath = "C:\\STHI\\logs\\drt_log.txt",
-                        NoContent = "SysCPU"
-                    },
-                    ["montior_txt_priority_2"] = new MonitorTxtConfig
-                    {
-                        FilePath = "C:\\STHI\\logs\\detailed_drt_log.txt",
-                        NoContent = "SysCPU"
-                    }
-                },
+                Jose = joseConfig,
                 SumPOR = new SumPORConfig
                 {
                     ShouldReadLogFiles = true,
@@ -194,6 +196,154 @@ namespace SystemUtilizationMonitor
 
             string jsonContent = JsonConvert.SerializeObject(defaultConfig, Formatting.Indented);
             File.WriteAllText(configPath, jsonContent);
+        }
+
+        private static Dictionary<string, MonitorTxtConfig> DiscoverBootLogFiles()
+        {
+            var bootLogConfigs = new Dictionary<string, MonitorTxtConfig>();
+
+            try
+            {
+                string pythonsvPath = @"C:\pythonsv";
+                if (Directory.Exists(pythonsvPath))
+                {
+                    string todayDate = DateTime.Now.ToString("yyyy-MM-dd");
+                    var productDirs = Directory.GetDirectories(pythonsvPath);
+
+                    int bootLogIndex = 1;
+
+                    foreach (var productDir in productDirs)
+                    {
+                        string logFilesPath = Path.Combine(productDir, "toolext", "bootscript", "logfiles");
+
+                        if (Directory.Exists(logFilesPath))
+                        {
+                            // Search for boot log files matching today's date pattern
+                            string searchPattern = $"boot_{todayDate}_*.log";
+                            var bootLogFiles = Directory.GetFiles(logFilesPath, searchPattern);
+                            string searchPattern2 = $"recipe_vars_{todayDate}_*.log";
+                            var bootLogFiles2 = Directory.GetFiles(logFilesPath, searchPattern2);
+
+                            foreach (var bootLogFile in bootLogFiles)
+                            {
+                                string productName = Path.GetFileName(productDir);
+                                string fileName = Path.GetFileName(bootLogFile);
+                                bootLogConfigs[$"boot_log_{productName}_{fileName}"] = new MonitorTxtConfig
+                                {
+                                    FilePath = bootLogFile,
+                                    NoContent = "SysCPU"
+                                };
+                                bootLogIndex++;
+                            }
+
+                            foreach (var bootLogFile in bootLogFiles2)
+                            {
+                                string productName = Path.GetFileName(productDir);
+                                string fileName = Path.GetFileName(bootLogFile);
+                                bootLogConfigs[$"recipe_vars_log_{productName}_{fileName}"] = new MonitorTxtConfig
+                                {
+                                    FilePath = bootLogFile,
+                                    NoContent = "SysCPU"
+                                };
+                                bootLogIndex++;
+                            }
+                        }
+                    }
+
+                    if (bootLogIndex > 1)
+                    {
+                        LogInfo($"Discovered {bootLogIndex - 1} boot log file(s) across product folders");
+                    }
+                }
+
+                // Add discovery for user PythonSv directory files
+                string userPythonSvPath = Path.Combine(@"C:\Users", Environment.UserName, "PythonSv");
+
+                if (Directory.Exists(userPythonSvPath))
+                {
+                    // Define the file patterns to search for
+                    var filePatterns = new[]
+                    {
+                        "socket_discovery_*.txt",
+                        "socket_discovery_*.log",
+                        "eip_*.txt",
+                        "eip_*.log",
+                        "Itssm_*.txt",
+                        "Itssm_*.log",
+                        "namednodes.txt",
+                        "namednodes.log"
+                    };
+
+                    var discoveredFiles = new List<FileInfo>();
+
+                    // Collect all matching files
+                    foreach (var pattern in filePatterns)
+                    {
+                        try
+                        {
+                            var matchingFiles = Directory.GetFiles(userPythonSvPath, pattern)
+                                .Select(f => new FileInfo(f));
+                            discoveredFiles.AddRange(matchingFiles);
+                        }
+                        catch (Exception ex)
+                        {
+                            LogError($"Error searching for pattern {pattern}: {ex.Message}");
+                        }
+                    }
+
+                    // Group by base name (without numeration) and take most recent from each group
+                    var groupedFiles = discoveredFiles
+                        .GroupBy(f => GetBaseFileName(f.Name))
+                        .Select(g => g.OrderByDescending(f => f.LastWriteTime).First())
+                        .OrderByDescending(f => f.LastWriteTime)
+                        .Take(4) // Take only the 4 most recent files
+                        .ToList();
+
+                    foreach (var file in groupedFiles)
+                    {
+                        string configKey = $"user_pythonsv_{file.Name}";
+                        bootLogConfigs[configKey] = new MonitorTxtConfig
+                        {
+                            FilePath = file.FullName,
+                            NoContent = "SysCPU"
+                        };
+                    }
+
+                    if (groupedFiles.Count > 0)
+                    {
+                        LogInfo($"Discovered {groupedFiles.Count} file(s) from user PythonSv directory (most recent by modified date)");
+                    }
+                }
+                else
+                {
+                    LogInfo($"User PythonSv directory not found: {userPythonSvPath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error discovering boot logs: {ex.Message}");
+            }
+
+            return bootLogConfigs;
+        }
+
+        /// <summary>
+        /// Extracts the base file name without numeration suffix
+        /// Examples: 
+        /// - "socket_discovery_123.txt" -> "socket_discovery.txt"
+        /// - "eip_456.log" -> "eip.log"
+        /// - "namednodes.txt" -> "namednodes.txt"
+        /// </summary>
+        private static string GetBaseFileName(string fileName)
+        {
+            // Handle files without numeration (namednodes.txt, namednodes.log)
+            if (!Regex.IsMatch(fileName, @"_\d+\."))
+            {
+                return fileName;
+            }
+
+            // Remove numeration pattern (_123) before extension
+            return Regex.Replace(fileName, @"_\d+(\.\w+)$", "$1");
         }
 
         private static void SetupOutputDirectory()
@@ -389,7 +539,50 @@ namespace SystemUtilizationMonitor
             timeFrame.StartTime = startTime;
             timeFrame.EndTime = endTime;
             timeFrame.MachineName = Environment.MachineName;
-            timeFrame.Product = ""; // Empty by default
+
+
+            // Look for product name in C:\ProductName.txt
+            string productNamePath = @"C:\ProductName.txt";
+            string productName = "";
+
+            try
+            {
+                if (File.Exists(productNamePath))
+                {
+                    // Read all lines from the file
+                    var lines = File.ReadAllLines(productNamePath);
+
+                    // Get the first non-empty line
+                    if (lines.Length > 0)
+                    {
+                        productName = lines[0]?.Trim() ?? "";
+
+                        // Log the found product name
+                        if (!string.IsNullOrEmpty(productName))
+                        {
+                            LogInfo($"Found product name in C:\\ProductName.txt: {productName}");
+                        }
+                        else
+                        {
+                            LogInfo("ProductName.txt exists but first line is empty");
+                        }
+                    }
+                    else
+                    {
+                        LogInfo("ProductName.txt exists but is empty");
+                    }
+                }
+                else
+                {
+                    LogInfo("ProductName.txt not found at C:\\ProductName.txt");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error reading product name from C:\\ProductName.txt: {ex.Message}");
+            }
+
+            timeFrame.Product = productName;
 
             // Set PCName to hostname and Cell to 'A101'
             timeFrame.PCName = Environment.MachineName;
@@ -404,8 +597,28 @@ namespace SystemUtilizationMonitor
             // Only monitor files if Jose configuration has entries
             if (appConfig.Jose != null && appConfig.Jose.Count > 0)
             {
-                timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, appConfig, logInfo);
-                LogInfo("File monitoring completed based on Jose configuration");
+                // Create a temporary combined configuration with boot logs
+                var combinedConfig = new ConfigurationModel
+                {
+                    Jose = new Dictionary<string, MonitorTxtConfig>(appConfig.Jose),
+                    SumPOR = appConfig.SumPOR,
+                    Mouse = appConfig.Mouse,
+                    Keyboard = appConfig.Keyboard,
+                    Hook = appConfig.Hook,
+                    Monitoring = appConfig.Monitoring,
+                    JsonOutputPath = appConfig.JsonOutputPath
+                };
+
+                // Discover and add boot log files dynamically
+                var bootLogConfigs = DiscoverBootLogFiles();
+                foreach (var bootLog in bootLogConfigs)
+                {
+                    // Add or update boot log configurations
+                    combinedConfig.Jose[bootLog.Key] = bootLog.Value;
+                }
+
+                timeFrame = MonitoringSUM.MonitoringFiles(timeFrame, combinedConfig, logInfo);
+                LogInfo("File monitoring completed based on Jose configuration + discovered boot logs");
             }
             else
             {

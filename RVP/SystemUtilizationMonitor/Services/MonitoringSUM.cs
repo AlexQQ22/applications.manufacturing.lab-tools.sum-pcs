@@ -167,7 +167,7 @@ namespace SystemUtilizationMonitor.Services
                                 for (int i = LastLineWriteToRead + 1; i <= LastLineWrote & !wasUsed; i++)
                                 {
                                     string lineText = File.ReadLines(pathToReadCopy).Skip(i - 1).Take(1).FirstOrDefault();
-
+                                    Console.WriteLine("NEW LINE DETECTED: " + lineText);
                                     if (!string.IsNullOrEmpty(lineText))
                                     {
 
