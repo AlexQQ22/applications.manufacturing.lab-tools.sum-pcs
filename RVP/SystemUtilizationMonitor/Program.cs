@@ -145,12 +145,12 @@ namespace SystemUtilizationMonitor
                 ["montior_txt_priority"] = new MonitorTxtConfig
                 {
                     FilePath = "C:\\STHI\\logs\\drt_log.txt",
-                    NoContent = "SysCPU" //;WARN
+                    NoContent = "SysCPU;USB" //;WARN
                 },
                 ["montior_txt_priority_2"] = new MonitorTxtConfig
                 {
                     FilePath = "C:\\STHI\\logs\\detailed_drt_log.txt",
-                    NoContent = "SysCPU" //;WARN
+                    NoContent = "SysCPU;USB" //;WARN
                 }
             };
 

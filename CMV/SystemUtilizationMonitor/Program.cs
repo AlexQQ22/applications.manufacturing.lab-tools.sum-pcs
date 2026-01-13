@@ -145,12 +145,12 @@ namespace SystemUtilizationMonitor
                     ["montior_txt_priority"] = new MonitorTxtConfig
                     {
                         FilePath = "C:\\STHI\\logs\\drt_log.txt",
-                        NoContent = "SysCPU"
+                        NoContent = "SysCPU;Heartbeat"
                     },
                     ["montior_txt_priority_2"] = new MonitorTxtConfig
                     {
                         FilePath = "C:\\STHI\\logs\\detailed_drt_log.txt",
-                        NoContent = "SysCPU"
+                        NoContent = "SysCPU;Heartbeat"
                     }
                 },
                 SumPOR = new SumPORConfig
@@ -387,7 +387,47 @@ namespace SystemUtilizationMonitor
             timeFrame.StartTime = startTime;
             timeFrame.EndTime = endTime;
             timeFrame.MachineName = Environment.MachineName;
-            timeFrame.Product = ""; // Empty by default
+            string productNamePath = @"C:\ProductName.txt";
+            string productName = "";
+
+            try
+            {
+                if (File.Exists(productNamePath))
+                {
+                    // Read all lines from the file
+                    var lines = File.ReadAllLines(productNamePath);
+
+                    // Get the first non-empty line
+                    if (lines.Length > 0)
+                    {
+                        productName = lines[0]?.Trim() ?? "";
+
+                        // Log the found product name
+                        if (!string.IsNullOrEmpty(productName))
+                        {
+                            LogInfo($"Found product name in C:\\ProductName.txt: {productName}");
+                        }
+                        else
+                        {
+                            LogInfo("ProductName.txt exists but first line is empty");
+                        }
+                    }
+                    else
+                    {
+                        LogInfo("ProductName.txt exists but is empty");
+                    }
+                }
+                else
+                {
+                    LogInfo("ProductName.txt not found at C:\\ProductName.txt");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error reading product name from C:\\ProductName.txt: {ex.Message}");
+            }
+
+            timeFrame.Product = productName;
 
             // Set PCName to hostname and Cell to 'A101'
             timeFrame.PCName = Environment.MachineName;
